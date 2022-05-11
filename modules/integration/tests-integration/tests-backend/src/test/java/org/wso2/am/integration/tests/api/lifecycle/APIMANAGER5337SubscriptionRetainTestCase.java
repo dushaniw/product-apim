@@ -17,6 +17,7 @@
  */
 package org.wso2.am.integration.tests.api.lifecycle;
 
+import com.google.gson.Gson;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
@@ -43,6 +44,8 @@ import java.net.URL;
 public class APIMANAGER5337SubscriptionRetainTestCase extends APIManagerLifecycleBaseTest {
 
     private static final Log log = LogFactory.getLog(APIMANAGER5337SubscriptionRetainTestCase.class);
+    private String apiId;
+    private String applicationID;
 
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
@@ -71,7 +74,10 @@ public class APIMANAGER5337SubscriptionRetainTestCase extends APIManagerLifecycl
             HttpResponse apiResponse = restAPIPublisher.addAPI(apiRequest);
             //verifyResponse(apiResponse);
 
-            String apiId = apiResponse.getData();
+            apiId = apiResponse.getData();
+
+            // Create Revision and Deploy to Gateway
+            createAPIRevisionAndDeployUsingRest(apiId, restAPIPublisher);
 
             //Publish the API
             restAPIPublisher.changeAPILifeCycleStatus(apiId, APILifeCycleAction.PUBLISH.getAction(), null);
@@ -81,7 +87,7 @@ public class APIMANAGER5337SubscriptionRetainTestCase extends APIManagerLifecycl
                     ApplicationDTO.TokenTypeEnum.JWT);
             //verifyResponse(applicationResponse);
 
-            String applicationID = applicationResponse.getData();
+            applicationID = applicationResponse.getData();
 
             //Subscribe the API to the Application
             response = restAPIStore.createSubscription(apiId, applicationID, APIMIntegrationConstants.API_TIER.UNLIMITED);
@@ -96,9 +102,9 @@ public class APIMANAGER5337SubscriptionRetainTestCase extends APIManagerLifecycl
             SubscriptionListDTO subsDTO = restAPIStore.getAllSubscriptionsOfApplication(applicationID);
 //            verifyResponse(response);
 
-
-            JSONObject subscriptionJson = new JSONObject(subsDTO);
-            Assert.assertEquals(subscriptionJson.toString().contains("SubscriptionCheckAPI"), true,
+            Gson g = new Gson();
+            String subscriptionJsonString = g.toJson(subsDTO, SubscriptionListDTO.class);
+            Assert.assertEquals(subscriptionJsonString.contains("SubscriptionCheckAPI"), true,
                     "Subscription of the SubscriptionCheckAPI has been removed.");
 
         } catch (APIManagerIntegrationTestException e) {
@@ -109,6 +115,9 @@ public class APIMANAGER5337SubscriptionRetainTestCase extends APIManagerLifecycl
 
     @AfterClass(alwaysRun = true)
     public void destroy() throws Exception {
+        restAPIStore.deleteApplication(applicationID);
+        undeployAndDeleteAPIRevisionsUsingRest(apiId, restAPIPublisher);
+        restAPIPublisher.deleteAPI(apiId);
         super.cleanUp();
     }
 }

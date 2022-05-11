@@ -21,7 +21,7 @@ under the License.
     <parent>
         <artifactId>tests-common</artifactId>
         <groupId>org.wso2.am</groupId>
-        <version>3.1.0-SNAPSHOT</version>
+        <version>4.1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -46,6 +46,10 @@ under the License.
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
             <artifactId>org.wso2.carbon.user.mgt.stub</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.idp.mgt.stub</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.multitenancy</groupId>
@@ -93,23 +97,11 @@ under the License.
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.mediation</groupId>
-            <artifactId>org.wso2.carbon.message.store.stub</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon.mediation</groupId>
             <artifactId>org.wso2.carbon.message.processor.stub</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.mediation</groupId>
             <artifactId>org.wso2.carbon.mediation.artifactuploader.stub</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon.mediation</groupId>
-            <artifactId>org.wso2.carbon.proxyadmin.stub</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon.deployment</groupId>
-            <artifactId>org.wso2.carbon.service.mgt.stub</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.registry</groupId>
@@ -198,6 +190,14 @@ under the License.
         <dependency>
             <groupId>org.wso2.carbon.governance</groupId>
             <artifactId>org.wso2.carbon.governance.lcm.stub</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.claim.metadata.mgt.stub</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
+            <artifactId>org.wso2.carbon.identity.oauth.stub</artifactId>
         </dependency>
     </dependencies>
 </project>

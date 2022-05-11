@@ -21,35 +21,40 @@ package org.wso2.am.integration.tests.login;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import org.wso2.am.admin.clients.client.utils.AuthenticateStub;
+import org.wso2.am.integration.clients.admin.api.dto.ApplicationThrottlePolicyListDTO;
 import org.wso2.am.integration.clients.publisher.api.ApiException;
 import org.wso2.am.integration.clients.publisher.api.v1.dto.APIListDTO;
 import org.wso2.am.integration.clients.store.api.v1.dto.ApplicationListDTO;
+import org.wso2.am.integration.test.impl.RestAPIAdminImpl;
 import org.wso2.am.integration.test.impl.RestAPIPublisherImpl;
 import org.wso2.am.integration.test.impl.RestAPIStoreImpl;
 import org.wso2.am.integration.test.utils.APIManagerIntegrationTestException;
-import org.wso2.am.integration.test.utils.base.APIMIntegrationBaseTest;
-import org.wso2.am.integration.test.utils.clients.AdminDashboardRestClient;
-import org.wso2.carbon.automation.engine.annotations.ExecutionEnvironment;
-import org.wso2.carbon.automation.engine.annotations.SetEnvironment;
-import org.wso2.carbon.automation.test.utils.http.client.HttpResponse;
+import org.wso2.am.integration.test.utils.base.APIMIntegrationConstants;
+import org.wso2.am.integration.test.utils.http.HTTPSClientUtils;
+import org.wso2.am.integration.tests.api.lifecycle.APIManagerLifecycleBaseTest;
+import org.wso2.carbon.automation.engine.context.AutomationContext;
+import org.wso2.carbon.automation.engine.context.TestUserMode;
+import org.wso2.carbon.integration.common.admin.client.UserManagementClient;
 import org.wso2.carbon.integration.common.utils.mgt.ServerConfigurationManager;
 import org.wso2.carbon.tenant.mgt.stub.TenantMgtAdminServiceExceptionException;
 import org.wso2.carbon.tenant.mgt.stub.TenantMgtAdminServiceStub;
 import org.wso2.carbon.tenant.mgt.stub.beans.xsd.TenantInfoBean;
 
-import javax.ws.rs.core.Response;
-import javax.xml.xpath.XPathExpressionException;
 import java.io.File;
+import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import javax.xml.xpath.XPathExpressionException;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 
 /**
@@ -57,64 +62,116 @@ import static org.testng.Assert.assertNotNull;
  * store and admin-dashboard. modified api manager configurations can be found in
  * configFiles/emailusernametest location
  */
-@SetEnvironment(executionEnvironments = {ExecutionEnvironment.STANDALONE})
-public class EmailUserNameLoginTestCase extends APIMIntegrationBaseTest {
+public class EmailUserNameLoginTestCase extends APIManagerLifecycleBaseTest {
 
-    private AdminDashboardRestClient workflowAdmin;
     private static final Log log = LogFactory.getLog(EmailUserNameLoginTestCase.class);
     private ServerConfigurationManager serverConfigurationManager ;
+    private UserManagementClient userManagementClient = null;
+    private final String INTERNAL_ROLE_SUBSCRIBER = "Internal/subscriber";
+    private final String INTERNAL_ROLE_PUBLISHER = "Internal/publisher";
+    private final String INTERNAL_ROLE_CREATOR = "Internal/creator";
+    private APIListDTO apiListDTO = null;
+    private final String TENANT_ADMIN_USERNAME = "emailuser@email.com";
+    private final String PASSWORD = "emailuser@email.com";
+    private final String TENANT_DOMAIN = "emailuserdomain.com";
+    private final String TENANT_USER_USERNAME = "user1@email.com";
 
 
-    @BeforeClass(alwaysRun = true)
-    public void setEnvironment() throws Exception {
-        super.init();
-        String workflowAdminURLHTTP = getStoreURLHttp();
+    @BeforeTest(alwaysRun = true)
+    public void loadConfiguration() throws Exception {
+
+        superTenantKeyManagerContext = new AutomationContext(APIMIntegrationConstants.AM_PRODUCT_GROUP_NAME,
+                APIMIntegrationConstants.AM_KEY_MANAGER_INSTANCE,
+                TestUserMode.SUPER_TENANT_ADMIN);
 
         String apiManagerXml =
                 getAMResourceLocation() + File.separator + "configFiles" + File.separator + "emailusernametest" +
                         File.separator + "deployment.toml";
+        try {
+            serverConfigurationManager = new ServerConfigurationManager(superTenantKeyManagerContext);
+            serverConfigurationManager.applyConfiguration(new File(apiManagerXml));
+        } catch (Exception e) {
+            throw new APIManagerIntegrationTestException("Error while changing server configuration", e);
+        }
+    }
 
+    @BeforeClass(alwaysRun = true)
+    public void setEnvironment() throws Exception {
 
-        configureServer(apiManagerXml);
-        workflowAdmin = new AdminDashboardRestClient(workflowAdminURLHTTP);
-
+        super.init();
     }
 
     @Test(groups = {"wso2.am"}, description = "Email username login test case")
-    public void LoginWithEmailUserNameTestCase() throws APIManagerIntegrationTestException, org.wso2.am.integration.clients.store.api.ApiException {
+    public void LoginWithEmailUserNameTestCase()
+            throws APIManagerIntegrationTestException, org.wso2.am.integration.clients.store.api.ApiException,
+            XPathExpressionException, org.wso2.am.integration.clients.admin.ApiException {
 
-        String userNameWithEmail = "emailuser@email.com";
-        String password = "email123";
-        String domainName = "emailuserdomain.com";
-        String fullUserName = userNameWithEmail + "@" + domainName;
-        boolean isSuccessful =
-                false;
+        boolean isSuccessful = false;
         try {
-            isSuccessful = createTenantWithEmailUserName(userNameWithEmail, password,
-                    domainName, publisherContext.getContextUrls().getBackEndUrl());
+            isSuccessful = createTenantWithEmailUserName(TENANT_ADMIN_USERNAME, PASSWORD,
+                    TENANT_DOMAIN, publisherContext.getContextUrls().getBackEndUrl());
         } catch (XPathExpressionException | RemoteException | TenantMgtAdminServiceExceptionException e) {
            throw new APIManagerIntegrationTestException(e.getMessage(), e);
         }
         assertEquals(isSuccessful, true);
 
-
-        // check for publisher login with email user name
-        restAPIPublisher = new RestAPIPublisherImpl(userNameWithEmail, password, domainName, "https://localhost:9943/");
-        APIListDTO apiListDTO = null;
         try {
-            apiListDTO = restAPIPublisher.apIsApi.apisGet(null, null, domainName, null, null, null, null);
+            HTTPSClientUtils.doGet(getAPIInvocationURLHttps("/t/emailuserdomain.com/services"), Collections.emptyMap());
+        } catch (IOException ignored) {
+            log.error(ignored);
+        }
+        restAPIPublisher = new RestAPIPublisherImpl(TENANT_ADMIN_USERNAME, PASSWORD, TENANT_DOMAIN, "https://localhost:9943/");
+        try {
+            apiListDTO = restAPIPublisher.apIsApi.getAllAPIs(null, null, TENANT_DOMAIN, null, null, null, null, null);
         } catch (ApiException e) {
             throw new APIManagerIntegrationTestException("Login to Publisher with email username failed due to " +
                     e.getMessage(), e);
         }
         // check for store login with email user name
-        restAPIStore = new RestAPIStoreImpl(userNameWithEmail, password, domainName,"https://localhost:9943/");
+        restAPIStore = new RestAPIStoreImpl(TENANT_ADMIN_USERNAME, PASSWORD, TENANT_DOMAIN,"https://localhost:9943/"
+        );
         ApplicationListDTO responseData = restAPIStore.getAllApps();
         assertNotNull(responseData, "Login to Store with email username failed");
+
         // check for Admin Portal login with email user name
-        HttpResponse login = workflowAdmin.login(fullUserName, password);
-        assertEquals(login.getResponseCode(), Response.Status.OK.getStatusCode(),
-                "Login to Admin Portal Login to Publisher with email username failed");
+        restAPIAdmin = new RestAPIAdminImpl(TENANT_ADMIN_USERNAME, PASSWORD, TENANT_DOMAIN, "https://localhost:9943/");
+        ApplicationThrottlePolicyListDTO listDTO =
+                restAPIAdmin.applicationPolicyCollectionApi.throttlingPoliciesApplicationGet(null, null, null);
+        assertNotNull(listDTO, "Login to Admin portal with email username failed");
+    }
+
+    @Test(groups = {"wso2.am"}, description = "Login with email username for tenant user",
+            dependsOnMethods = "LoginWithEmailUserNameTestCase")
+    public void LoginWithTenantUserEmailUserNameTestCase() throws Exception {
+        String fullUserName = TENANT_ADMIN_USERNAME + "@" + TENANT_DOMAIN;
+
+        userManagementClient = new UserManagementClient(keyManagerContext.getContextUrls().getBackEndUrl(),
+                fullUserName, PASSWORD);
+        //add tenant user
+        userManagementClient.addUser(TENANT_USER_USERNAME, PASSWORD,
+                new String[]{INTERNAL_ROLE_SUBSCRIBER, INTERNAL_ROLE_PUBLISHER, INTERNAL_ROLE_CREATOR}, TENANT_USER_USERNAME);
+
+        restAPIPublisher = new RestAPIPublisherImpl(TENANT_USER_USERNAME, PASSWORD,
+                TENANT_DOMAIN, publisherURLHttps);
+
+        try {
+            apiListDTO = restAPIPublisher.apIsApi.getAllAPIs(null, null, "emailuserdomain.com",
+                    null, null, null, null, null);
+        } catch (ApiException e) {
+            throw new APIManagerIntegrationTestException("Login to Publisher with email username failed due to " +
+                    e.getMessage(), e);
+        }
+
+        // check for store login with email user name
+        restAPIStore = new RestAPIStoreImpl(TENANT_USER_USERNAME, PASSWORD, TENANT_DOMAIN, storeURLHttps);
+        ApplicationListDTO responseData = restAPIStore.getAllApps();
+        assertNotNull(responseData, "Login to Store with email username failed");
+
+        // check for Admin Portal login with email user name
+        restAPIAdmin = new RestAPIAdminImpl(TENANT_USER_USERNAME, PASSWORD, TENANT_DOMAIN, adminURLHttps);
+        ApplicationThrottlePolicyListDTO listDTO =
+                restAPIAdmin.applicationPolicyCollectionApi.throttlingPoliciesApplicationGet(null, null, null);
+        assertNotNull(listDTO, "Login to Admin portal with email username failed");
     }
 
     /**
@@ -177,18 +234,13 @@ public class EmailUserNameLoginTestCase extends APIMIntegrationBaseTest {
 
     @AfterClass(alwaysRun = true)
     public void destroy() throws Exception {
-        serverConfigurationManager.restoreToLastConfiguration();
         super.cleanUp();
     }
 
-    private void configureServer(String apiManagerXml) throws Exception {
-
-        try {
-            serverConfigurationManager = new ServerConfigurationManager(publisherContext);
-            serverConfigurationManager.applyConfigurationWithoutRestart(new File(apiManagerXml));
-        } catch (Exception e) {
-            throw new APIManagerIntegrationTestException("Error while changing server configuration", e);
-        }
+    @AfterTest(alwaysRun = true)
+    public void restoreConfiguration() throws Exception {
+        serverConfigurationManager = new ServerConfigurationManager(superTenantKeyManagerContext);
+        serverConfigurationManager.restoreToLastConfiguration();
     }
 
 }

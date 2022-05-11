@@ -1,8 +1,6 @@
 [server]
 #hostname = "localhost"
-node_ip = "127.0.0.1"
 #offset=0
-mode = "single" #single or ha
 base_path = "${carbon.protocol}://${carbon.host}:${carbon.management.port}"
 server_role = "default"
 
@@ -36,8 +34,9 @@ alias =  "wso2carbon"
 key_password =  "wso2carbon"
 
 [[apim.gateway.environment]]
-name = "Production and Sandbox"
+name = "Default"
 type = "hybrid"
+provider = "wso2"
 display_in_api_console = true
 description = "This is a hybrid gateway that handles both production and sandbox token traffic."
 show_as_token_endpoint_url = true
@@ -47,6 +46,27 @@ password = "admin"
 ws_endpoint = "ws://localhost:9099"
 http_endpoint = "http://localhost:${http.nio.port}"
 https_endpoint = "https://localhost:${https.nio.port}"
+
+[[apim.gateway.environment]]
+name = "devportalEnv"
+display_name = "Developer portal Test Environment"
+type = "hybrid"
+display_in_api_console = false
+description = "development api gateway broker"
+provider = "solace"
+service_url = "http://localhost:9960"
+username = "testUser"
+ws_endpoint = "ws://localhost:9960/"
+wss_endpoint = "wss://localhost:9960/"
+http_endpoint = "http://localhost:9960"
+https_endpoint = "https://localhost:9960/"
+password = "testPassword"
+show_as_token_endpoint_url = false
+
+[apim.gateway.environment.properties]
+Organization = "TestWSO2"
+DisplayName = "Developer portal Test Environment"
+DevAccountName = "devPortTestEnv"
 
 #[apim.cache.gateway_token]
 #enable = true
@@ -187,7 +207,7 @@ allow_credentials = false
 #password = "$ref{super_admin.password}"
 #callback_endpoint = "https://localhost:${mgt.transport.https.port}/api/am/publisher/v0.16/workflows/update-workflow-status"
 #token_endpoint = "https://localhost:${https.nio.port}/token"
-#client_registration_endpoint = "https://localhost:${mgt.transport.https.port}/client-registration/v0.16/register"
+#client_registration_endpoint = "https://localhost:${mgt.transport.https.port}/client-registration/v0.17/register"
 #client_registration_username = "$ref{super_admin.username}"
 #client_registration_password = "$ref{super_admin.password}"
 
@@ -230,6 +250,7 @@ subscriptions=["POST_ADD_USER"]
 
 [transport]
 passthru_https.listener.ssl_profile_interval = 6000
+passthru_https.sender.ssl_profile.interval = 6000
 
 [security_audit]
 api_token="b57973cf-b74c-4ade-921d-ece83251eceb"
@@ -239,3 +260,21 @@ global=true
 
 [apim.certificate_reloader]
 period = "1m"
+
+[database.local]
+url = "jdbc:h2:./repository/database/WSO2CARBON_DB;DB_CLOSE_ON_EXIT=FALSE"
+
+[[event_listener]]
+id = "token_revocation"
+type = "org.wso2.carbon.identity.core.handler.AbstractIdentityHandler"
+name = "org.wso2.is.notification.ApimOauthEventInterceptor"
+order = 1
+[event_listener.properties]
+notification_endpoint = "https://localhost:${mgt.transport.https.port}/internal/data/v1/notify"
+username = "${admin.username}"
+password = "${admin.password}"
+'header.X-WSO2-KEY-MANAGER' = "default"
+
+[apim.sync_runtime_artifacts.gateway.skip_list]
+apis = ["admin--git2231head_v1.0.0.xml","admin--PizzaShackAPI_v1.0.0.xml","admin--ScriptMediatorAPI_v1.0.xml",
+"APIThrottleBackendAPI.xml","BackEndSecurity.xml","DigestAuth_API.xml","git2231.xml","HttpPATCHSupport_API.xml","JWKS-Backend.xml","JWTBackendAPI.xml","multiVSR_v1.0.0.xml","Response_API_1.xml","Response_API_2.xml","Response_Custom_API.xml","Response_Error_API.xml","Response_Loc_API.xml","SpecialCRN_v1.0.0.xml","status_code_204_API.xml","stockquote.xml","XML_API.xml","Version1.xml","Version2.xml"]

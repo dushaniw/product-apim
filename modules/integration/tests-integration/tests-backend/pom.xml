@@ -20,7 +20,7 @@ under the License.
     <parent>
         <artifactId>org.wso2.carbon.am.integration.test</artifactId>
         <groupId>org.wso2.am</groupId>
-        <version>3.1.0-SNAPSHOT</version>
+        <version>4.1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -82,10 +82,10 @@ under the License.
                     </plugin>
                     <plugin>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.22.1</version>
+                        <version>3.0.0-M5</version>
                         <inherited>false</inherited>
                         <configuration>
-                            <argLine>-Xmx1024m -XX:PermSize=256m -XX:MaxPermSize=512m</argLine>
+                            <argLine>-Xmx2048m</argLine>
                             <suiteXmlFiles>
                                 <suiteXmlFile>src/test/resources/testng-server-mgt.xml</suiteXmlFile>
                                 <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
@@ -122,6 +122,8 @@ under the License.
                                 <sec.verifier.dir>${basedir}/target/security-verifier/</sec.verifier.dir>
                                 <instr.file>${basedir}/src/test/resources/instrumentation.txt</instr.file>
                                 <filters.file>${basedir}/src/test/resources/filters.txt</filters.file>
+                                <apim.server.version>${apimserver.version}</apim.server.version>
+                                <startupScript>api-manager</startupScript>
                             </systemProperties>
                             <skipTests>${skipIntegrationTests}</skipTests>
                             <environmentVariables>
@@ -144,6 +146,9 @@ under the License.
                             <classpathDependencyExcludes>
                                 <classpathDependencyExclude>org.ops4j.pax.logging</classpathDependencyExclude>
                             </classpathDependencyExcludes>
+                            <systemPropertyVariables>
+                                <okHttpLogs>false</okHttpLogs>
+                            </systemPropertyVariables>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -200,7 +205,7 @@ under the License.
                         <inherited>false</inherited>
                         <version>2.22.1</version>
                         <configuration>
-                            <argLine>-Xmx1024m -XX:PermSize=256m -XX:MaxPermSize=512m</argLine>
+                            <argLine>-Xmx2048m</argLine>
                             <suiteXmlFiles>
                                 <suiteXmlFile>src/test/resources/testng-server-mgt.xml</suiteXmlFile>
                                 <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
@@ -233,11 +238,16 @@ under the License.
                                 <sec.verifier.dir>${basedir}/target/security-verifier/</sec.verifier.dir>
                                 <instr.file>${basedir}/src/test/resources/instrumentation.txt</instr.file>
                                 <filters.file>${basedir}/src/test/resources/filters.txt</filters.file>
+                                <startupScript>api-manager</startupScript>
+                                <apim.server.version>${apimserver.version}</apim.server.version>
                             </systemProperties>
                             <workingDirectory>${basedir}/target</workingDirectory>
                             <classpathDependencyExcludes>
                                 <classpathDependencyExclude>org.ops4j.pax.logging</classpathDependencyExclude>
                             </classpathDependencyExcludes>
+                            <systemPropertyVariables>
+                                <okHttpLogs>false</okHttpLogs>
+                            </systemPropertyVariables>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -293,7 +303,7 @@ under the License.
                         <inherited>false</inherited>
                         <version>2.22.1</version>
                         <configuration>
-                            <argLine>-Xmx1024m -XX:PermSize=256m -XX:MaxPermSize=512m</argLine>
+                            <argLine>-Xmx2048m</argLine>
                             <suiteXmlFiles>
                                 <suiteXmlFile>src/test/resources/testng-server-mgt.xml</suiteXmlFile>
                                 <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
@@ -326,7 +336,11 @@ under the License.
                                 <sec.verifier.dir>${basedir}/target/security-verifier/</sec.verifier.dir>
                                 <instr.file>${basedir}/src/test/resources/instrumentation.txt</instr.file>
                                 <filters.file>${basedir}/src/test/resources/filters.txt</filters.file>
+                                <startupScript>api-manager</startupScript>
                             </systemProperties>
+                            <systemPropertyVariables>
+                                <okHttpLogs>false</okHttpLogs>
+                            </systemPropertyVariables>
                             <workingDirectory>${basedir}/target</workingDirectory>
                             <classpathDependencyExcludes>
                                 <classpathDependencyExclude>org.ops4j.pax.logging</classpathDependencyExclude>
@@ -392,6 +406,19 @@ under the License.
                                     <includes>**/*.mar,**/axis2_client.xml</includes>
                                 </artifactItem>
                             </artifactItems>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-thirdparty-km-jar</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/src/test/resources/artifacts/AM/configFiles/idpjwt
+                            </outputDirectory>
+                            <includeTypes>jar</includeTypes>
+                            <includeArtifactIds>org.wso2.am.thirdparty.km</includeArtifactIds>
                         </configuration>
                     </execution>
                 </executions>
@@ -520,12 +547,28 @@ under the License.
             <artifactId>org.wso2.am.integration.admin.clients</artifactId>
             <exclusions>
                 <exclusion>
-                    <groupId>org.ops4j.pax.logging</groupId>
+                    <groupId>org.wso2.org.ops4j.pax.logging</groupId>
                     <artifactId>pax-logging-api</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>org.ops4j.pax.logging</groupId>
+                    <artifactId>pax-logging-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.wso2.org.ops4j.pax.logging</groupId>
                     <artifactId>pax-logging-log4j2</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -557,6 +600,20 @@ under the License.
                     <groupId>org.slf4j</groupId>
                     <artifactId>log4j-over-slf4j</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jul-to-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.am</groupId>
+            <artifactId>org.wso2.am.thirdparty.km</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.wso2.carbon.apimgt</groupId>
+                    <artifactId>org.wso2.carbon.apimgt.impl</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -564,8 +621,13 @@ under the License.
             <artifactId>org.wso2.carbon.integration.common.utils</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.carbon.apimgt</groupId>
             <artifactId>org.wso2.carbon.apimgt.api</artifactId>
+            <scope>test</scope>
             <exclusions>
                 <exclusion>
                     <groupId>net.sf.saxon</groupId>
@@ -622,6 +684,10 @@ under the License.
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-rt-rs-sse</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-core</artifactId>
         </dependency>
         <dependency>
@@ -642,12 +708,12 @@ under the License.
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
-            <artifactId>org.wso2.carbon.identity.oauth.stub</artifactId>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.claim.metadata.mgt.stub</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
-            <artifactId>org.wso2.carbon.identity.claim.metadata.mgt.stub</artifactId>
+            <artifactId>org.wso2.carbon.idp.mgt.stub</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.andes.wso2</groupId>
@@ -677,11 +743,6 @@ under the License.
             <version>${jetty.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.28</version>
-        </dependency>
-        <dependency>
             <groupId>org.json.wso2</groupId>
             <artifactId>json</artifactId>
             <version>2.0.0.wso2v1</version>
@@ -694,16 +755,15 @@ under the License.
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.am</groupId>
             <artifactId>org.wso2.am.integration.clients.publisher.api</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.wso2.am</groupId>
             <artifactId>org.wso2.am.integration.clients.store.api</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -715,6 +775,12 @@ under the License.
             <groupId>io.swagger.parser.v3</groupId>
             <artifactId>swagger-parser</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-ext</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
@@ -724,6 +790,53 @@ under the License.
         <dependency>
             <groupId>org.wso2.orbit.com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.am</groupId>
+            <artifactId>org.wso2.am.integration.clients.internal.api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.am</groupId>
+            <artifactId>org.wso2.am.integration.clients.gateway.api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.application.common</artifactId>
+            <version>5.19.48</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.wso2.org.ops4j.pax.logging</groupId>
+                    <artifactId>pax-logging-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.ops4j.pax.logging</groupId>
+                    <artifactId>pax-logging-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-simple</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock-jre8-standalone</artifactId>
+            <version>2.27.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.35</version>
+            <type>pom</type>
             <scope>test</scope>
         </dependency>
     </dependencies>

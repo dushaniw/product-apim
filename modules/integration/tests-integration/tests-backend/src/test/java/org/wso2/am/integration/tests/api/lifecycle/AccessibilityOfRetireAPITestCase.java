@@ -134,7 +134,6 @@ public class AccessibilityOfRetireAPITestCase extends APIManagerLifecycleBaseTes
         assertTrue(APILifeCycleState.RETIRED.getState().equals(blockAPIActionResponse.getData()),
                 "API status Change is invalid when retire an API :" + API_NAME + " with API ID ("
                         + apiId + ")" + " Response Code:" + blockAPIActionResponse.getResponseCode());
-
     }
 
 

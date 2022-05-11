@@ -21,12 +21,16 @@ package org.wso2.am.integration.tests.api.lifecycle;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Factory;
+import org.testng.annotations.Test;
 import org.wso2.am.integration.clients.publisher.api.v1.dto.APIDTO;
 import org.wso2.am.integration.clients.store.api.v1.dto.TagDTO;
 import org.wso2.am.integration.test.impl.RestAPIStoreImpl;
 import org.wso2.am.integration.test.utils.base.APIMIntegrationConstants;
-import org.wso2.am.integration.test.utils.bean.*;
+import org.wso2.am.integration.test.utils.bean.APICreationRequestBean;
 import org.wso2.carbon.automation.engine.context.TestUserMode;
 import org.wso2.carbon.integration.common.admin.client.UserManagementClient;
 
@@ -112,9 +116,12 @@ public class APITagVisibilityByRoleTestCase extends APIManagerLifecycleBaseTest 
         apiCreationReqBeanPublicAPI.setDescription(DESCRIPTION);
         apiCreationReqBeanPublicAPI.setVersion(API_VERSION_1_0_0);
         apiCreationReqBeanPublicAPI.setProvider(providerName);
-        //add and publish public API
+        //add API
         APIDTO apiDtoPublicAPI = restAPIPublisher.addAPI(apiCreationReqBeanPublicAPI);
         publicApiId = apiDtoPublicAPI.getId();
+        //create Revision and Deploy to Gateway
+        createAPIRevisionAndDeployUsingRest(publicApiId, restAPIPublisher);
+        //publish API
         publishAPI(publicApiId, restAPIPublisher, false);
         waitForAPIDeployment();
 
@@ -128,6 +135,9 @@ public class APITagVisibilityByRoleTestCase extends APIManagerLifecycleBaseTest 
         //add and publish Restricted API
         APIDTO apiDtoRestrictedAPI = restAPIPublisher.addAPI(apiCreationRequestBeanRestrictedAPI);
         restrictedApiId = apiDtoRestrictedAPI.getId();
+        //create Revision and Deploy to Gateway
+        createAPIRevisionAndDeployUsingRest(restrictedApiId, restAPIPublisher);
+        //publish API
         publishAPI(restrictedApiId, restAPIPublisher, false);
         waitForAPIDeployment();
     }
@@ -181,8 +191,10 @@ public class APITagVisibilityByRoleTestCase extends APIManagerLifecycleBaseTest 
 
     @AfterClass(alwaysRun = true)
     public void destroy() throws Exception {
-        restAPIPublisher.deleteAPIByID(publicApiId);
-        restAPIPublisher.deleteAPIByID(restrictedApiId);
+        undeployAndDeleteAPIRevisionsUsingRest(publicApiId, restAPIPublisher);
+        undeployAndDeleteAPIRevisionsUsingRest(restrictedApiId, restAPIPublisher);
+        restAPIPublisher.deleteAPI(publicApiId);
+        restAPIPublisher.deleteAPI(restrictedApiId);
         userManagementClient.deleteRole(ROLE);
         userManagementClient.deleteUser(ALLOWED_USER);
     }

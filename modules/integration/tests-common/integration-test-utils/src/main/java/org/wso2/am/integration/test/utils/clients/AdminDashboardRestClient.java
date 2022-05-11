@@ -57,7 +57,7 @@ public class AdminDashboardRestClient {
         log.info("Login to Admin Portal " + backendURL + " as the user " + userName );
         try {
             response = HTTPSClientUtils.doPost(
-                    new URL(backendURL + "admin/site/blocks/user/login/ajax/login.jag"),
+                    new URL(backendURL + "admin-old/site/blocks/user/login/ajax/login.jag"),
                     "action=login&username=" + userName + "&password=" + password + "",
                     requestHeaders);
         } catch (Exception e) {
@@ -85,7 +85,7 @@ public class AdminDashboardRestClient {
         try {
             checkAuthentication();
             return HTTPSClientUtils.doPost(
-                    new URL(backendURL + "admin/site/blocks/tier/edit/ajax/tier-edit.jag"),
+                    new URL(backendURL + "admin-old/site/blocks/tier/edit/ajax/tier-edit.jag"),
                     throttlingTierRequest.generateRequestParameters(), requestHeaders);
         } catch (Exception e) {
             throw new APIManagerIntegrationTestException("Add new tier failed", e);
@@ -98,14 +98,96 @@ public class AdminDashboardRestClient {
             checkAuthentication();
             requestHeaders.put("Accept", "application/json, text/javascript");
             return HTTPSClientUtils.doPost(
-                    new URL(backendURL + "admin/site/blocks/policy/resource/policy-add/ajax/policy-operations.jag"),
+                    new URL(backendURL + "admin-old/site/blocks/policy/resource/policy-add/ajax/policy-operations.jag"),
                     "action=addApiPolicy&apiPolicy=" + URLEncoder.encode(throttlingPolicyJSON, "UTF-8")
                     , requestHeaders);
         } catch (Exception e) {
             throw new APIManagerIntegrationTestException("Add new policy failed", e);
         }
     }
+    
+    public HttpResponse addApplicationPolicyWithBandwidthType(String name, int bandwidth, String bandwidthUnit,
+            int defaultUnitTime, String defaultTimeUnit) throws APIManagerIntegrationTestException {
+        try {
+            checkAuthentication();
+            requestHeaders.put("Accept", "application/json, text/javascript");
+            requestHeaders.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            return HTTPSClientUtils.doPost(
+                    new URL(backendURL + "admin-old/site/blocks/policy/app/edit/ajax/app-policy-edit.jag"),
+                    "action=add&policyName=" + name
+                            + "&description=&defaultQuotaPolicy=bandwidthVolume&defaultRequestCount=&defaultBandwidth="
+                            + bandwidth + "&defaultBandwidthUnit=" + bandwidthUnit + "&defaultUnitTime="
+                            + defaultUnitTime + "&defaultTimeUnit=" + defaultTimeUnit
+                            + "&stopOnQuotaReach=false&attributes=%5B%5D",
+                    requestHeaders);
+        } catch (Exception e) {
+            throw new APIManagerIntegrationTestException("Add new policy failed", e);
+        }
+    }
+    
+    public HttpResponse addSubscriptionPolicyWithBandwidthType(String name, int bandwidth, String bandwidthUnit,
+            int defaultUnitTime, String defaultTimeUnit, boolean stopOnQuotaReach, int rateLimit,
+            String rateLimitTimeUnit) throws APIManagerIntegrationTestException {
+        try {
+            checkAuthentication();
+            requestHeaders.put("Accept", "application/json, text/javascript");
+            requestHeaders.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            return HTTPSClientUtils.doPost(
+                    new URL(backendURL
+                            + "admin-old/site/blocks/policy/subscription/edit/ajax/subscription-policy-edit.jag"),
+                    "action=add&policyName=" + name
+                            + "&description=&defaultQuotaPolicy=bandwidthVolume&defaultRequestCount=&defaultBandwidth="
+                            + bandwidth + "&defaultBandwidthUnit=" + bandwidthUnit + "&defaultUnitTime="
+                            + defaultUnitTime + "&defaultTimeUnit=" + defaultTimeUnit + "&rateLimitCount=" + rateLimit
+                            + "&rateLimitTimeUnit=" + rateLimitTimeUnit + "&stopOnQuotaReach=" + stopOnQuotaReach
+                            + "&tierPlan=FREE&monetizationPlan=FixedRate&fixedRate=&billingCycle=week&pricePerRequest=&currencyType=&permissionType=allow&roles=Internal%2Feveryone&attributes=%5B%5D",
+                    requestHeaders);
+        } catch (Exception e) {
+            throw new APIManagerIntegrationTestException("Add new policy failed", e);
+        }
+    }
 
+    public HttpResponse deleteSubscriptionPolicy(String name) throws APIManagerIntegrationTestException {
+        try {
+            checkAuthentication();
+            requestHeaders.put("Accept", "application/json, text/javascript");
+            requestHeaders.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            return HTTPSClientUtils.doPost(
+                    new URL(backendURL
+                            + "admin-old/site/blocks/policy/subscription/manage/ajax/subscription-policy-manage.jag"),
+                    "action=deleteSubscriptionPolicy&policy=" + name, requestHeaders);
+        } catch (Exception e) {
+            throw new APIManagerIntegrationTestException("Delete subscription policy failed", e);
+        }
+    }
+    
+    public HttpResponse deleteAPIPolicy(String name) throws APIManagerIntegrationTestException {
+        try {
+            checkAuthentication();
+            requestHeaders.put("Accept", "application/json, text/javascript");
+            requestHeaders.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            return HTTPSClientUtils.doPost(
+                    new URL(backendURL
+                            + "admin-old/site/blocks/policy/resource/policy-list/ajax/api-policy-manage.jag"),
+                    "action=deleteAPIPolicy&policy=" + name, requestHeaders);
+        } catch (Exception e) {
+            throw new APIManagerIntegrationTestException("Delete subscription policy failed", e);
+        }
+    }
+    
+    public HttpResponse deleteApplicationPolicy(String name) throws APIManagerIntegrationTestException {
+        try {
+            checkAuthentication();
+            requestHeaders.put("Accept", "application/json, text/javascript");
+            requestHeaders.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            return HTTPSClientUtils.doPost(
+                    new URL(backendURL
+                            + "admin-old/site/blocks/policy/app/manage/ajax/app-policy-manage.jag"),
+                    "action=deleteAppPolicy&policy=" + name, requestHeaders);
+        } catch (Exception e) {
+            throw new APIManagerIntegrationTestException("Delete subscription policy failed", e);
+        }
+    }
     /**
      * Delete tier
      * @param tierName
@@ -117,7 +199,7 @@ public class AdminDashboardRestClient {
         try {
             checkAuthentication();
             return HTTPSClientUtils.doPost(
-                    new URL(backendURL + "admin/site/blocks/tier/manage/ajax/tier-manage.jag"),
+                    new URL(backendURL + "admin-old/site/blocks/tier/manage/ajax/tier-manage.jag"),
                     "action=deleteTier&tier=" + tierName, requestHeaders);
         } catch (Exception e) {
             throw new APIManagerIntegrationTestException("Delete tier failed", e);
@@ -134,7 +216,7 @@ public class AdminDashboardRestClient {
         try {
             checkAuthentication();
             return HTTPSClientUtils.doPost(
-                    new URL(backendURL + "admin/site/blocks/tier/manage/ajax/tier-manage.jag"),
+                    new URL(backendURL + "admin-old/site/blocks/tier/manage/ajax/tier-manage.jag"),
                     "action=getAllTiers", requestHeaders);
         } catch (Exception e) {
             throw new APIManagerIntegrationTestException("Get all tiers failed", e);
@@ -159,7 +241,7 @@ public class AdminDashboardRestClient {
             checkAuthentication();
             return HTTPSClientUtils.doPost(
                     new URL(backendURL
-                            + "admin/site/blocks/application-owner/get-applications/ajax/get-applications.jag"),
+                            + "admin-old/site/blocks/application-owner/get-applications/ajax/get-applications.jag"),
                             "action=getApplicationsByTenantIdWithPagination&start=" + start + "&length=" + offset
                             + "&search[value]=" + search + "&draw=" + draw + "&order[0][column]=" + columnId
                             + "&order[0][dir]=" + sortOrder, requestHeaders);
@@ -183,7 +265,7 @@ public class AdminDashboardRestClient {
             checkAuthentication();
             return HTTPSClientUtils.doPost(
                     new URL(backendURL
-                            + "admin/site/blocks/application-owner/change-owner/ajax/change-owner.jag"),
+                            + "admin-old/site/blocks/application-owner/change-owner/ajax/change-owner.jag"),
                             "action=changeOwner&newOwner=" + newOwner + "&oldOwner=" + oldOwner
                             + "&applicationUuid=" + uuid + "&applicationName=" + appName, requestHeaders);
         } catch (Exception e) {

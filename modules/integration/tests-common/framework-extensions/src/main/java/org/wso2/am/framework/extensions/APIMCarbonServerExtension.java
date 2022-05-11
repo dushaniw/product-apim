@@ -22,7 +22,6 @@ package org.wso2.am.framework.extensions;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.am.integration.test.Constants;
 import org.wso2.am.integration.test.utils.APIMTestConstants;
 import org.wso2.carbon.automation.engine.annotations.ExecutionEnvironment;
 import org.wso2.carbon.automation.engine.context.ContextXpathConstants;
@@ -32,12 +31,11 @@ import org.wso2.carbon.automation.engine.frameworkutils.FrameworkPathUtil;
 import org.wso2.carbon.automation.extensions.ExtensionConstants;
 import org.wso2.carbon.automation.extensions.servers.carbonserver.CarbonServerExtension;
 import org.wso2.carbon.automation.extensions.servers.carbonserver.TestServerManager;
-import org.wso2.carbon.automation.test.utils.common.TestConfigurationProvider;
 import org.wso2.carbon.integration.common.utils.FileManager;
 
-import javax.xml.xpath.XPathExpressionException;
 import java.io.File;
 import java.io.IOException;
+import javax.xml.xpath.XPathExpressionException;
 
 public class APIMCarbonServerExtension extends ExecutionListenerExtension {
 
@@ -92,6 +90,10 @@ public class APIMCarbonServerExtension extends ExecutionListenerExtension {
 
         getParameters().put("-DosgiConsole", APIMTestConstants.OSGI_CONSOLE_TELNET_PORT);
         serverManager = new TestServerManager(getAutomationContext(), null, getParameters()) {
+            @Override
+            public String startServer() throws AutomationFrameworkException, IOException, XPathExpressionException {
+                return super.startServer();
+            }
 
             public void configureServer() throws AutomationFrameworkException {
 
@@ -101,6 +103,22 @@ public class APIMCarbonServerExtension extends ExecutionListenerExtension {
                     String customHandlerTargetPath =
                             serverManager.getCarbonHome() + File.separator + "repository" + File.separator +
                                     "components" + File.separator + "lib";
+                    String dropinsPath =
+                            serverManager.getCarbonHome() + File.separator + "repository" + File.separator +
+                                    "components" + File.separator + "dropins";
+
+                    String synapseApiPath =
+                            serverManager.getCarbonHome() + File.separator + "repository" + File.separator
+                                    + "deployment" + File.separator + "server" + File.separator + "synapse-configs"
+                                    + File.separator + "default" + File.separator + "api";
+
+                    FileManager.copyFile(new File(
+                            resourcePath + File.separator + "synapseconfigs" + File.separator + "rest" + File.separator
+                                    + "BackEndSecurity.xml"), synapseApiPath + File.separator + "BackEndSecurity.xml");
+                    FileManager.copyFile(new File(
+                            resourcePath + File.separator + "synapseconfigs" + File.separator + "rest" + File.separator
+                                    + "JWKS-Backend.xml"), synapseApiPath + File.separator + "JWKS-Backend.xml");
+
                     String userStorePath = serverManager.getCarbonHome() + File.separator + "repository" + File.separator
                             + "deployment" + File.separator + "server" + File.separator + "userstores";
                     String databasePath = serverManager.getCarbonHome() + File.separator + "repository" + File.separator
@@ -130,6 +148,10 @@ public class APIMCarbonServerExtension extends ExecutionListenerExtension {
                     FileManager.copyJarFile(new File(getAMResourceLocation() + File.separator +
                                     "configFiles" + File.separator + "APIM5898" + File.separator + "subs-workflow-1.0.0.jar"),
                             customHandlerTargetPath);
+                    String apimVersion = System.getProperty("apim.server.version");
+                    FileManager.copyJarFile(new File(
+                            getAMResourceLocation() + File.separator + "configFiles" + File.separator + "idpjwt" +
+                                    File.separator + "org.wso2.am.thirdparty.km-" + apimVersion + ".jar"), dropinsPath);
                     String customHandlerSourcePath = getAMResourceLocation() + File.separator + "lifecycletest"
                             + File.separator + CUSTOM_AUTH_HANDLER_JAR;
                     FileManager.copyJarFile(new File(customHandlerSourcePath), customHandlerTargetPath);
@@ -139,6 +161,7 @@ public class APIMCarbonServerExtension extends ExecutionListenerExtension {
                             serverManager.getCarbonHome() + File.separator + "repository" + File.separator + "conf"
                                     + File.separator + "log4j2.properties";
                     FileManager.copyFile(new File(log4jPropertiesFile), log4jPropertiesTargetLocation);
+
                 } catch (IOException e) {
                     throw new AutomationFrameworkException(e.getMessage(), e);
                 }

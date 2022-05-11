@@ -1,8 +1,6 @@
 [server]
 #hostname = "localhost"
-node_ip = "127.0.0.1"
 #offset=0
-mode = "single" #single or ha
 base_path = "${carbon.protocol}://${carbon.host}:${carbon.management.port}"
 server_role = "default"
 
@@ -36,8 +34,9 @@ alias =  "wso2carbon"
 key_password =  "wso2carbon"
 
 [[apim.gateway.environment]]
-name = "Production and Sandbox"
+name = "Default"
 type = "hybrid"
+provider = "wso2"
 display_in_api_console = true
 description = "This is a hybrid gateway that handles both production and sandbox token traffic."
 show_as_token_endpoint_url = true
@@ -51,6 +50,7 @@ https_endpoint = "https://localhost:8243"
 [[apim.gateway.environment]]
 name = "Production"
 type = "production"
+provider = "wso2"
 display_in_api_console = false
 description = "This is a production gateway that handles production token traffic."
 show_as_token_endpoint_url = false
@@ -132,7 +132,7 @@ enable_user_claims = true
 [apim.oauth_config]
 enable_outbound_auth_header = true
 default_app_scope = "am_custom_application_scope"
-white_listed_scopes = ["^device_.*","openid","custom_device"]
+allowed_scopes = ["^device_.*","openid","custom_device"]
 auth_header = "X-Authorization"
 revoke_endpoint = "https://localhost:8243/revoke"
 enable_token_encryption = true
@@ -235,7 +235,7 @@ wf_engine_user = "wf.user"
 wf_engine_pass = "wf.pass"
 callback_endpoint = "https://localhost:9443/api/am/publisher/v0.16/workflows/update-workflow-status"
 token_endpoint = "https://localhost:8243/token"
-client_registration_endpoint = "https://localhost:9443/client-registration/v0.16/register"
+client_registration_endpoint = "https://localhost:9443/client-registration/v0.17/register"
 client_registration_username = "wf.user"
 client_registration_password = "wf.pass"
 
@@ -280,3 +280,8 @@ enable = true
 
 [transport]
 passthru_https.listener.ssl_profile_interval = 6000
+passthru_https.sender.ssl_profile.interval = 6000
+
+[apim.sync_runtime_artifacts.gateway.skip_list]
+apis = ["admin--git2231head_v1.0.0.xml","admin--PizzaShackAPI_v1.0.0.xml","admin--ScriptMediatorAPI_v1.0.xml",
+"APIThrottleBackendAPI.xml","BackEndSecurity.xml","DigestAuth_API.xml","git2231.xml","HttpPATCHSupport_API.xml","JWKS-Backend.xml","JWTBackendAPI.xml","multiVSR_v1.0.0.xml","Response_API_1.xml","Response_API_2.xml","Response_Custom_API.xml","Response_Error_API.xml","Response_Loc_API.xml","SpecialCRN_v1.0.0.xml","status_code_204_API.xml","stockquote.xml","XML_API.xml","Version1.xml","Version2.xml"]

@@ -131,6 +131,8 @@ public class AccessibilityOfOldAPIAndCopyAPIWithReSubscriptionTestCase extends A
         assertEquals(newVersionResponse.getResponseCode(), Response.Status.OK.getStatusCode(),
                 "Response Code Mismatch");
         newApiId = newVersionResponse.getData();
+        // Create Revision and Deploy to Gateway
+        createAPIRevisionAndDeployUsingRest(newApiId, restAPIPublisher);
         //Publish  version 2.0.0 without re-subscription required
         String lifecycleChecklist = "Requires re-subscription when publishing the API:true";
         HttpResponse publishAPIResponse = restAPIPublisher
@@ -197,13 +199,12 @@ public class AccessibilityOfOldAPIAndCopyAPIWithReSubscriptionTestCase extends A
         assertTrue(StringUtils.isNotEmpty(newVersionSubscribeResponse.getData()),
                 "Error in subscribe of old API version" + getAPIIdentifierStringFromAPIRequest(apiRequest));
 
-        URL tokenEndpointURL = new URL(gatewayUrlsWrk.getWebAppURLNhttp() + "token");
+        URL tokenEndpointURL = new URL(keyManagerHTTPSURL + "oauth2/token");
         String subsAccessTokenPayload = APIMTestCaseUtils.getPayloadForPasswordGrant(user.getUserName(),
                 user.getPassword());
         JSONObject subsAccessTokenGenerationResponse = new JSONObject(
                 restAPIStore.generateUserAccessKey(consumerKey, consumerSecret, subsAccessTokenPayload,
                         tokenEndpointURL).getData());
-
         requestHeaders.put("Authorization", "Bearer " + subsAccessTokenGenerationResponse.getString("access_token"));
     }
 
@@ -224,9 +225,11 @@ public class AccessibilityOfOldAPIAndCopyAPIWithReSubscriptionTestCase extends A
     public void cleanUpArtifacts() throws Exception {
         SubscriptionListDTO subsDTO = restAPIStore.getAllSubscriptionsOfApplication(applicationId);
         for (SubscriptionDTO subscriptionDTO: subsDTO.getList()){
-            restAPIStore.removeSubscription(subscriptionDTO.getSubscriptionId());
+            restAPIStore.removeSubscription(subscriptionDTO);
         }
         restAPIStore.deleteApplication(applicationId);
+        undeployAndDeleteAPIRevisionsUsingRest(apiId, restAPIPublisher);
+        undeployAndDeleteAPIRevisionsUsingRest(newApiId, restAPIPublisher);
         restAPIPublisher.deleteAPI(apiId);
         restAPIPublisher.deleteAPI(newApiId);
 

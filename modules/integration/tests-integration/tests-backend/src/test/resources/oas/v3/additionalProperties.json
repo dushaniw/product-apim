@@ -9,7 +9,6 @@
   "wsdlInfo": null,
   "responseCachingEnabled": false,
   "cacheTimeout": 300,
-  "destinationStatsEnabled": null,
   "hasThumbnail": null,
   "isDefaultVersion": false,
   "enableSchemaValidation": false,
@@ -24,13 +23,10 @@
   "visibility": "PUBLIC",
   "visibleRoles": [],
   "visibleTenants": [],
-  "endpointSecurity": null,
-  "gatewayEnvironments": ["Production and Sandbox"],
-  "labels": [],
   "mediationPolicies": [],
   "subscriptionAvailability": "ALL_TENANTS",
   "subscriptionAvailableTenants": [],
-  "additionalProperties": {},
+  "additionalProperties": [],
   "monetization": null,
   "accessControl": "NONE",
   "accessControlRoles": [],
@@ -48,8 +44,6 @@
     "accessControlAllowMethods": ["GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS"]
   },
   "workflowStatus": null,
-  "createdTime": "2019-09-17 17:49:55.251",
-  "lastUpdatedTime": "2019-09-17 17:49:55.251",
   "endpointConfig": {
     "endpoint_type": "http",
     "sandbox_endpoints": {

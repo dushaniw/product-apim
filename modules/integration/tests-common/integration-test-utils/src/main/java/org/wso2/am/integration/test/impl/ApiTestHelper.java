@@ -50,6 +50,7 @@ import org.wso2.am.integration.clients.store.api.v1.dto.ApplicationTokenDTO;
 import org.wso2.am.integration.clients.store.api.v1.dto.SubscriptionDTO;
 import org.wso2.am.integration.test.utils.APIManagerIntegrationTestException;
 import org.wso2.am.integration.test.utils.base.APIMIntegrationConstants;
+import org.wso2.carbon.automation.engine.context.beans.User;
 import org.wso2.carbon.automation.test.utils.http.client.HttpResponse;
 
 import java.io.File;
@@ -78,46 +79,33 @@ public class ApiTestHelper {
     private RestAPIStoreImpl restAPIStore;
     private final String resourceLocation;
     private final String tenantDomain;
-    private final String nhttpURL;
-
+    private final String keyManagerUrl;
+    private final User user;
     public ApiTestHelper(RestAPIPublisherImpl restAPIPublisher, RestAPIStoreImpl restAPIStore, String resourceLocation,
-                         String tenantDomain, String nhttpURL) {
+                         String tenantDomain, String keyManagerUrl, User user) {
         this.restAPIPublisher = restAPIPublisher;
         this.restAPIStore = restAPIStore;
         this.resourceLocation = resourceLocation;
         this.tenantDomain = tenantDomain;
-        this.nhttpURL = nhttpURL;
+        this.keyManagerUrl = keyManagerUrl;
+        this.user = user;
     }
 
     public APIDTO createApiOne(String backendUrl) throws ApiException {
         String swaggerPath = resourceLocation + File.separator + SWAGGER_FOLDER +
                 File.separator + "customer-info-api.yaml";
 
-        File definition = new File(swaggerPath);
-
-        JSONObject endpoints = new JSONObject();
-        endpoints.put("url", backendUrl);
-
-        JSONObject endpointConfig = new JSONObject();
-        endpointConfig.put("endpoint_type", "http");
-        endpointConfig.put("production_endpoints", endpoints);
-        endpointConfig.put("sandbox_endpoints", endpoints);
-
-        String uniqueName = UUID.randomUUID().toString();
-        JSONObject apiProperties = new JSONObject();
-        apiProperties.put("name", uniqueName);
-        apiProperties.put("context", "/" + uniqueName);
-        apiProperties.put("version", "1.0.0");
-        apiProperties.put("provider", "admin");
-        apiProperties.put("endpointConfig", endpointConfig);
-
-        return restAPIPublisher.importOASDefinition(definition, apiProperties.toString());
+        return getApiDTO(backendUrl, swaggerPath);
     }
 
     public APIDTO createApiTwo(String backendUrl) throws ApiException {
         String swaggerPath = resourceLocation + File.separator + SWAGGER_FOLDER +
                 File.separator + "leasing-api.yaml";
 
+        return getApiDTO(backendUrl, swaggerPath);
+    }
+
+    private APIDTO getApiDTO(String backendUrl, String swaggerPath) throws ApiException {
         File definition = new File(swaggerPath);
 
         JSONObject endpoints = new JSONObject();
@@ -129,11 +117,13 @@ public class ApiTestHelper {
         endpointConfig.put("sandbox_endpoints", endpoints);
 
         String uniqueName = UUID.randomUUID().toString();
+
+
         JSONObject apiProperties = new JSONObject();
         apiProperties.put("name", uniqueName);
         apiProperties.put("context", "/" + uniqueName);
         apiProperties.put("version", "1.0.0");
-        apiProperties.put("provider", "admin");
+        apiProperties.put("provider", user.getUserName());
         apiProperties.put("endpointConfig", endpointConfig);
 
         return restAPIPublisher.importOASDefinition(definition, apiProperties.toString());
@@ -153,12 +143,14 @@ public class ApiTestHelper {
         endpointConfig.put("production_endpoints", endpoints);
         endpointConfig.put("sandbox_endpoints", endpoints);
 
+
+
         String uniqueName = UUID.randomUUID().toString();
         JSONObject apiProperties = new JSONObject();
         apiProperties.put("name", uniqueName);
         apiProperties.put("context", "/" + uniqueName);
         apiProperties.put("version", "1.0.0");
-        apiProperties.put("provider", "admin");
+        apiProperties.put("provider", user.getUserName());
         apiProperties.put("endpointConfig", endpointConfig);
         apiProperties.put("visibility", "RESTRICTED");
         apiProperties.put("visibleRoles", Collections.singletonList(role));
@@ -181,13 +173,16 @@ public class ApiTestHelper {
         String uniqueName = UUID.randomUUID().toString();
         apiProperties.put("name", uniqueName);
         apiProperties.put("context", "/" + uniqueName);
+        apiProperties.put("provider", user.getUserName());
         ((JSONObject) ((JSONObject) apiProperties.get("endpointConfig")).get("production_endpoints")).put("url", backendUrl);
         ((JSONObject) ((JSONObject) apiProperties.get("endpointConfig")).get("sandbox_endpoints")).put("url", backendUrl);
 
-        ((JSONObject) ((JSONObject) (apiProperties.getJSONArray("scopes")).get(0)).get("bindings")).
-                put("values", Collections.singletonList(role));
-        ((JSONObject) (apiProperties.getJSONArray("scopes")).get(0)).put("name", scope);
-        ((JSONObject) (apiProperties.getJSONArray("scopes")).get(0)).put("description", scope);
+
+        ((JSONObject) (((JSONObject) (apiProperties.getJSONArray("scopes")).get(0)).get("scope"))).put("bindings",
+                Collections.singletonList(role));
+
+        ((JSONObject) (((JSONObject) (apiProperties.getJSONArray("scopes")).get(0)).get("scope"))).put("name", scope);
+        ((JSONObject) (((JSONObject) (apiProperties.getJSONArray("scopes")).get(0)).get("scope"))).put("description", scope);
 
         JSONArray operations = apiProperties.getJSONArray("operations");
 
@@ -198,12 +193,12 @@ public class ApiTestHelper {
         return restAPIPublisher.importOASDefinition(definition, apiProperties.toString());
     }
 
-    public APIDTO createInMediationSequenceApi(String backendUrl) throws IOException, ApiException {
+    public APIDTO createAnApi(String backendUrl) throws IOException, ApiException {
         String swaggerPath = resourceLocation + File.separator + SWAGGER_FOLDER +
                 File.separator + "customer-info-api.yaml";
 
         String additionalPropertiesPath = resourceLocation + File.separator + ADDITIONAL_PROPERTIES_FOLDER +
-                File.separator + "in-mediation-api-properties.json";
+                File.separator + "api-properties.json";
 
         File definition = new File(swaggerPath);
 
@@ -213,40 +208,47 @@ public class ApiTestHelper {
         String uniqueName = UUID.randomUUID().toString();
         apiProperties.put("name", uniqueName);
         apiProperties.put("context", "/" + uniqueName);
+        apiProperties.put("provider", user.getUserName());
         ((JSONObject) ((JSONObject) apiProperties.get("endpointConfig")).get("production_endpoints")).put("url", backendUrl);
         ((JSONObject) ((JSONObject) apiProperties.get("endpointConfig")).get("sandbox_endpoints")).put("url", backendUrl);
 
         return restAPIPublisher.importOASDefinition(definition, apiProperties.toString());
     }
 
-    public APIDTO createOutMediationSequenceApi(String backendUrl) throws IOException, ApiException {
+    public APIDTO createAdvertiseOnlyApi(String backendUrl) throws ApiException {
         String swaggerPath = resourceLocation + File.separator + SWAGGER_FOLDER +
                 File.separator + "customer-info-api.yaml";
 
-        String additionalPropertiesPath = resourceLocation + File.separator + ADDITIONAL_PROPERTIES_FOLDER +
-                File.separator + "out-mediation-api-properties.json";
-
         File definition = new File(swaggerPath);
 
-        String content = new String(Files.readAllBytes(Paths.get(additionalPropertiesPath)));
-        JSONObject apiProperties = new JSONObject(content);
+        JSONObject apiProperties = new JSONObject();
 
         String uniqueName = UUID.randomUUID().toString();
         apiProperties.put("name", uniqueName);
         apiProperties.put("context", "/" + uniqueName);
-        ((JSONObject) ((JSONObject) apiProperties.get("endpointConfig")).get("production_endpoints")).put("url", backendUrl);
-        ((JSONObject) ((JSONObject) apiProperties.get("endpointConfig")).get("sandbox_endpoints")).put("url", backendUrl);
+        apiProperties.put("version", "1.0.0");
+        apiProperties.put("provider", user.getUserName());
+
+        JSONObject advertiseInfo = new JSONObject();
+        advertiseInfo.put("advertised", true);
+        advertiseInfo.put("apiExternalProductionEndpoint", backendUrl);
+        advertiseInfo.put("apiExternalSandboxEndpoint", backendUrl);
+        advertiseInfo.put("originalDevPortalUrl", "https://test.com");
+        advertiseInfo.put("vendor", "WSO2");
+        advertiseInfo.put("apiOwner", user.getUserName());
+        apiProperties.put("advertiseInfo", advertiseInfo);
 
         return restAPIPublisher.importOASDefinition(definition, apiProperties.toString());
     }
 
     public ApplicationDTO verifySubscription(org.wso2.am.integration.clients.store.api.v1.dto.APIDTO apiDTO,
                                              String applicationName, String subscriptionPolicy)
-            throws org.wso2.am.integration.clients.store.api.ApiException {
+            throws org.wso2.am.integration.clients.store.api.ApiException, APIManagerIntegrationTestException {
         ApplicationDTO applicationDTO = restAPIStore.addApplication(applicationName,
                 APIMIntegrationConstants.APPLICATION_TIER.UNLIMITED, "http://localhost", "");
 
-        SubscriptionDTO subscriptionDTO = restAPIStore.subscribeToAPI(apiDTO.getId(),
+        SubscriptionDTO subscriptionDTO = null;
+        subscriptionDTO = restAPIStore.subscribeToAPI(apiDTO.getId(),
                 applicationDTO.getApplicationId(), subscriptionPolicy);
 
         Assert.assertEquals(subscriptionDTO.getApiId(), apiDTO.getId());
@@ -262,7 +264,7 @@ public class ApiTestHelper {
     public ApplicationKeyDTO verifyKeyGeneration(ApplicationDTO applicationDTO,
                                       ApplicationKeyGenerateRequestDTO.KeyTypeEnum keyType,
                                       ArrayList<String> scopes, List<String> grantTypes)
-            throws org.wso2.am.integration.clients.store.api.ApiException {
+            throws org.wso2.am.integration.clients.store.api.ApiException, APIManagerIntegrationTestException {
         final String validityTime = "3600";
         final String callbackUrl = "http://localhost";
 
@@ -276,7 +278,7 @@ public class ApiTestHelper {
 
         ApplicationTokenDTO token = applicationKeyDTO.getToken();
 
-        List<String> expectedScopes = new ArrayList<>(Arrays.asList("am_application_scope", "default"));
+        List<String> expectedScopes = new ArrayList<>(Arrays.asList("default"));
         expectedScopes.addAll(scopes);
         Assert.assertEquals(new HashSet<>(token.getTokenScopes()), new HashSet<>(expectedScopes));
 
@@ -287,12 +289,8 @@ public class ApiTestHelper {
     public String generateTokenPasswordGrant(String consumerKey, String consumerSecret, String userName, String password,
                                             List<String> scopes) throws APIManagerIntegrationTestException,
                                                                             MalformedURLException {
-        String tokenEndpointURL;
-        if (tenantDomain.equals("carbon.super")) {
-            tokenEndpointURL = nhttpURL + "/token";
-        } else {
-            tokenEndpointURL =
-                    nhttpURL + "t/" + tenantDomain + "/token";
+        String tokenEndpointURL = keyManagerUrl + "oauth2/token";
+        if (!"carbon.super".equals(tenantDomain)) {
             userName = userName + "@" + tenantDomain;
         }
 
@@ -541,6 +539,7 @@ public class ApiTestHelper {
         Assert.assertEquals(applicationInfo.getOwner(), applicationDTO.getOwner());
         Assert.assertEquals(applicationInfo.getStatus(), applicationDTO.getStatus());
         Assert.assertEquals(applicationInfo.getThrottlingPolicy(), applicationDTO.getThrottlingPolicy());
-        Assert.assertEquals(applicationInfo.getSubscriptionCount(), new Integer(applicationDTO.getSubscriptionCount() + 1));
+        Assert.assertEquals(applicationInfo.getSubscriptionCount(),
+                new Integer(applicationDTO.getSubscriptionCount() + 1));
     }
 }

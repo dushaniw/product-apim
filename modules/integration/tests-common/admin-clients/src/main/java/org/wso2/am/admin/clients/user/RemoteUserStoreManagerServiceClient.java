@@ -21,6 +21,7 @@ package org.wso2.am.admin.clients.user;
 import org.apache.axis2.AxisFault;
 import org.wso2.am.admin.clients.client.utils.AuthenticateStub;
 import org.wso2.carbon.um.ws.api.stub.ClaimValue;
+import org.wso2.carbon.um.ws.api.stub.PermissionDTO;
 import org.wso2.carbon.um.ws.api.stub.RemoteUserStoreManagerServiceStub;
 import org.wso2.carbon.um.ws.api.stub.RemoteUserStoreManagerServiceUserStoreExceptionException;
 import org.wso2.carbon.user.core.UserStoreException;
@@ -122,6 +123,54 @@ public class RemoteUserStoreManagerServiceClient {
     public void setUserClaimValue(String username, String claim, String value, String profile)
             throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
         remoteUserStoreManagerServiceStub.setUserClaimValue(username, claim, value, profile);
+    }
+
+    /**
+     *  Used to delete user.
+     * @param user
+     * @throws RemoteUserStoreManagerServiceUserStoreExceptionException
+     * @throws RemoteException
+     */
+    public void removeUser(String user) throws RemoteUserStoreManagerServiceUserStoreExceptionException,
+            RemoteException {
+        remoteUserStoreManagerServiceStub.deleteUser(user);
+    }
+
+    /**
+     *
+     * @param user
+     * @param password
+     * @throws RemoteUserStoreManagerServiceUserStoreExceptionException
+     * @throws RemoteException
+     */
+    public void updateUser(String user, String password)
+            throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
+        remoteUserStoreManagerServiceStub.updateCredentialByAdmin(user, password);
+    }
+
+    public void updateRoleListOfUser(String userName, String[] deletedRoles, String[] newRoles)
+            throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
+        remoteUserStoreManagerServiceStub.updateRoleListOfUser(userName, deletedRoles, newRoles);
+    }
+
+    public String[] getRoleListOfUser(String userName)
+            throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
+        return remoteUserStoreManagerServiceStub.getRoleListOfUser(userName);
+    }
+
+    public void addRole(String roleName, String[] userList, PermissionDTO[] permissions)
+            throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
+        remoteUserStoreManagerServiceStub.addRole(roleName, userList, permissions);
+    }
+
+    public void deleteRole(String roleName)
+            throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
+        remoteUserStoreManagerServiceStub.deleteRole(roleName);
+    }
+
+    public void deleteUser(String userName)
+            throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
+        remoteUserStoreManagerServiceStub.deleteUser(userName);
     }
 
 }

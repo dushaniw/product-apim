@@ -21,9 +21,9 @@ import org.apache.commons.lang.StringUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Factory;
+import org.testng.annotations.Test;
 import org.wso2.am.integration.clients.publisher.api.v1.dto.APIDTO;
 import org.wso2.am.integration.test.impl.RestAPIPublisherImpl;
 import org.wso2.am.integration.test.impl.RestAPIStoreImpl;
@@ -88,11 +88,12 @@ public class PublisherAccessControlTestCase extends APIManagerLifecycleBaseTest 
 
     @DataProvider
     public static Object[][] userModeDataProvider() {
-        return new Object[][] { new Object[] { TestUserMode.SUPER_TENANT_ADMIN },
-                new Object[] { TestUserMode.TENANT_ADMIN },
-                new Object[] { TestUserMode.SUPER_TENANT_USER_STORE_USER },
-                new Object[] { TestUserMode.SUPER_TENANT_EMAIL_USER },
-                new Object[] { TestUserMode.TENANT_EMAIL_USER },
+        return new Object[][]{
+                new Object[]{TestUserMode.SUPER_TENANT_ADMIN},
+                new Object[]{TestUserMode.TENANT_ADMIN},
+                new Object[]{TestUserMode.SUPER_TENANT_USER_STORE_USER},
+                new Object[]{TestUserMode.SUPER_TENANT_EMAIL_USER},
+                new Object[]{TestUserMode.TENANT_EMAIL_USER},
         };
     }
 
@@ -174,6 +175,14 @@ public class PublisherAccessControlTestCase extends APIManagerLifecycleBaseTest 
                 keyManagerContext.getContextTenant().getDomain(), storeURLHttps);
 
 
+        restAPIPublisher = new RestAPIPublisherImpl(
+                publisherContext.getContextTenant().getContextUser().getUserNameWithoutDomain(),
+                publisherContext.getContextTenant().getContextUser().getPassword(),
+                publisherContext.getContextTenant().getDomain(), publisherURLHttps);
+        restAPIStore =
+                new RestAPIStoreImpl(storeContext.getContextTenant().getContextUser().getUserNameWithoutDomain(),
+                        storeContext.getContextTenant().getContextUser().getPassword(),
+                        storeContext.getContextTenant().getDomain(), storeURLHttps);
     }
 
     @Test(groups = "wso2.am", description = "This test case tests the retrieval of API which was added with a access "
@@ -315,6 +324,8 @@ public class PublisherAccessControlTestCase extends APIManagerLifecycleBaseTest 
         createAPIRequest.setVisibility(RESTRICTED_ACCESS_CONTROL);
         createAPIRequest.setRoles(SUBSCRIBER_ROLE);
         restAPIPublisher.updateAPI(createAPIRequest, restrictedAccessRestrictedVisibilityAPIId);
+        // Create Revision and Deploy to Gateway
+        createAPIRevisionAndDeployUsingRest(restrictedAccessRestrictedVisibilityAPIId, restAPIPublisher);
         // Waiting to index after api update operation
         Thread.sleep(10000);
 
@@ -328,6 +339,11 @@ public class PublisherAccessControlTestCase extends APIManagerLifecycleBaseTest 
 
     @AfterClass (alwaysRun = true)
     public void destroy() throws Exception {
+        undeployAndDeleteAPIRevisionsUsingRest(publisherAccessControlAPIId, restAPIPublisher);
+        undeployAndDeleteAPIRevisionsUsingRest(publicAccessRestrictedVisibilityAPIId, restAPIPublisher);
+        undeployAndDeleteAPIRevisionsUsingRest(publisherAccessControlAPI2Id, restAPIPublisher);
+        undeployAndDeleteAPIRevisionsUsingRest(restrictedAccessRestrictedVisibilityAPIId, restAPIPublisher);
+        undeployAndDeleteAPIRevisionsUsingRest(accessControlledPublicVisibilityAPIId, restAPIPublisher);
         restAPIPublisher.deleteAPI(publisherAccessControlAPIId);
         restAPIPublisher.deleteAPI(publicAccessRestrictedVisibilityAPIId);
         restAPIPublisher.deleteAPI(publisherAccessControlAPI2Id);

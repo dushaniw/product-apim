@@ -26,6 +26,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.wso2.am.integration.clients.publisher.api.v1.dto.APIOperationsDTO;
 import org.wso2.am.integration.clients.publisher.api.v1.dto.MediationPolicyDTO;
+import org.wso2.am.integration.test.Constants;
 import org.wso2.am.integration.test.utils.APIManagerIntegrationTestException;
 
 import java.net.URI;
@@ -58,7 +59,7 @@ public class APIRequest extends AbstractRequest {
     private String tier = "Silver";
     private String thumbUrl = "";
     private String tiersCollection = "Gold";
-    private String type = "http";
+    private String type = "HTTP";
     private String resourceCount = "0";
     private String resourceMethod = "GET,POST,PUT,PATCH,DELETE,HEAD";
     private String resourceMethodAuthType = "Application & Application User,Application & Application User";
@@ -71,7 +72,7 @@ public class APIRequest extends AbstractRequest {
     private String sandbox = "";
     private String provider = "admin";
     private JSONObject corsConfiguration;
-    private String environment = "Production and Sandbox";
+    private String environment = Constants.GATEWAY_ENVIRONMENT;
     private String apiTier = "";
     private String accessControl;
     private String accessControlRoles;
@@ -80,6 +81,21 @@ public class APIRequest extends AbstractRequest {
     private String technicalOwner;
     private String technicalOwnerEmail;
     private List<String> securityScheme;
+    private List<String> apiCategories;
+    private List<String> keyManagers;
+    private String subscriptionAvailability;
+
+    public List<String> getVisibleTenants() {
+
+        return visibleTenants;
+    }
+
+    public void setVisibleTenants(List<String> visibleTenants) {
+
+        this.visibleTenants = visibleTenants;
+    }
+
+    private List<String> visibleTenants;
 
     public List<String> getSecurityScheme() {
         return securityScheme;
@@ -139,6 +155,16 @@ public class APIRequest extends AbstractRequest {
 
     public void setWsdl(String wsdl) {
         this.wsdl = wsdl;
+    }
+
+    public List<String> getKeyManagers() {
+
+        return keyManagers;
+    }
+
+    public void setKeyManagers(List<String> keyManagers) {
+
+        this.keyManagers = keyManagers;
     }
 
     /**
@@ -274,6 +300,18 @@ public class APIRequest extends AbstractRequest {
             log.error("Error when constructing JSON", e);
             throw new APIManagerIntegrationTestException("Error when constructing JSON", e);
         }
+    }
+
+    public APIRequest(String apiName, String context) {
+        this.name = apiName;
+        this.context = context;
+        this.corsConfiguration = new JSONObject("{\"corsConfigurationEnabled\" : false, " +
+                "\"accessControlAllowOrigins\" : [\"*\"], " +
+                "\"accessControlAllowCredentials\" : true, " +
+                "\"accessControlAllowHeaders\" : " +
+                "[\"Access-Control-Allow-Origin\", \"authorization\", " +
+                "\"Content-Type\"], \"accessControlAllowMethods\" : [\"POST\", " +
+                "\"PATCH\", \"GET\", \"DELETE\", \"OPTIONS\", \"PUT\"]}");
     }
 
     public APIRequest(String apiName, String context, URI productionEndpointUri, URI sandboxEndpointUri)
@@ -421,6 +459,10 @@ public class APIRequest extends AbstractRequest {
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public org.json.simple.JSONObject getEndpointConfig() {
@@ -643,4 +685,21 @@ public class APIRequest extends AbstractRequest {
         this.technicalOwnerEmail = technicalOwnerEmail;
     }
 
+    public void setApiCategories(List<String> apiCategories) {
+        this.apiCategories = apiCategories;
+    }
+
+    public List<String> getApiCategories() {
+        return apiCategories;
+    }
+
+    public String getSubscriptionAvailability() {
+
+        return subscriptionAvailability;
+    }
+
+    public void setSubscriptionAvailability(String subscriptionAvailability) {
+
+        this.subscriptionAvailability = subscriptionAvailability;
+    }
 }

@@ -110,6 +110,8 @@ public class APIAccessibilityOfPublishedOldAPIAndPublishedCopyAPITestCase
                      "Copy  API response data is invalid" + getAPIIdentifierStringFromAPIRequest(apiRequest));
 
         newApiId = newVersionResponse.getData();
+        // Create Revision and Deploy to Gateway
+        createAPIRevisionAndDeployUsingRest(newApiId, restAPIPublisher);
     }
 
 
@@ -229,9 +231,11 @@ public class APIAccessibilityOfPublishedOldAPIAndPublishedCopyAPITestCase
     public void cleanUpArtifacts() throws Exception {
         SubscriptionListDTO subsDTO = restAPIStore.getAllSubscriptionsOfApplication(applicationId);
         for (SubscriptionDTO subscriptionDTO: subsDTO.getList()){
-            restAPIStore.removeSubscription(subscriptionDTO.getSubscriptionId());
+            restAPIStore.removeSubscription(subscriptionDTO);
         }
         restAPIStore.deleteApplication(applicationId);
+        undeployAndDeleteAPIRevisionsUsingRest(apiId, restAPIPublisher);
+        undeployAndDeleteAPIRevisionsUsingRest(newApiId, restAPIPublisher);
         restAPIPublisher.deleteAPI(apiId);
         restAPIPublisher.deleteAPI(newApiId);
 

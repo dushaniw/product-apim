@@ -20,6 +20,7 @@ package org.wso2.am.integration.tests.api.lifecycle;
 
 
 import org.apache.commons.lang.StringUtils;
+import org.json.JSONException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -88,7 +89,7 @@ public class AccessibilityOfDeprecatedOldAPIAndPublishedCopyAPITestCase
 
 
     @Test(groups = {"wso2.am"}, description = "Test subscribe of old API version before deprecate the old version")
-    public void testSubscribeOldVersionBeforeDeprecate() throws APIManagerIntegrationTestException, MalformedURLException, ApiException {
+    public void testSubscribeOldVersionBeforeDeprecate() throws APIManagerIntegrationTestException, MalformedURLException, ApiException, JSONException {
 
 
         APIRequest apiRequest;
@@ -122,6 +123,10 @@ public class AccessibilityOfDeprecatedOldAPIAndPublishedCopyAPITestCase
         HttpResponse apiResponse2 = restAPIPublisher.addAPI(apiRequest2);
         apiId2 = apiResponse2.getData();
 
+        //create Revision and Deploy to Gateway
+        createAPIRevisionAndDeployUsingRest(apiId, restAPIPublisher);
+        createAPIRevisionAndDeployUsingRest(apiId2, restAPIPublisher);
+
         restAPIPublisher.changeAPILifeCycleStatus(apiId, APILifeCycleAction.PUBLISH.getAction(), null);
         restAPIPublisher.changeAPILifeCycleStatus(apiId2, APILifeCycleAction.PUBLISH.getAction(), null);
 
@@ -137,7 +142,7 @@ public class AccessibilityOfDeprecatedOldAPIAndPublishedCopyAPITestCase
 
     @Test(groups = {"wso2.am"}, description = "Test subscribe of new API version before deprecate the old version",
             dependsOnMethods = "testSubscribeOldVersionBeforeDeprecate")
-    public void testSubscribeNewVersion() {
+    public void testSubscribeNewVersion() throws APIManagerIntegrationTestException {
         HttpResponse newVersionSubscribeResponse = restAPIStore.createSubscription(apiId2, applicationID, APIMIntegrationConstants.API_TIER.UNLIMITED);
 
         subscriptionId2 = newVersionSubscribeResponse.getData();
@@ -148,7 +153,7 @@ public class AccessibilityOfDeprecatedOldAPIAndPublishedCopyAPITestCase
 
     @Test(groups = {"wso2.am"}, description = "Test deprecate old api version",
             dependsOnMethods = "testSubscribeNewVersion")
-    public void testDeprecateOldVersion() throws ApiException {
+    public void testDeprecateOldVersion() throws ApiException, APIManagerIntegrationTestException {
         HttpResponse deprecateAPIResponse = restAPIPublisher
                 .changeAPILifeCycleStatus(apiId, APILifeCycleAction.DEPRECATE.getAction(), null);
         assertEquals(deprecateAPIResponse.getResponseCode(), HTTP_RESPONSE_CODE_OK,
@@ -200,7 +205,7 @@ public class AccessibilityOfDeprecatedOldAPIAndPublishedCopyAPITestCase
 
     @Test(groups = {"wso2.am"}, description = "Test the subscription of deprecated API version.",
             dependsOnMethods = "testVisibilityOfNewAPIInStore")
-    public void testSubscribeOldVersionAfterDeprecate() {
+    public void testSubscribeOldVersionAfterDeprecate() throws APIManagerIntegrationTestException {
         //subscribe deprecated old version
         HttpResponse oldVersionSubscribeResponse = restAPIStore.createSubscription(apiId, applicationID, APIMIntegrationConstants.API_TIER.UNLIMITED);
 
@@ -242,9 +247,11 @@ public class AccessibilityOfDeprecatedOldAPIAndPublishedCopyAPITestCase
 
 
     @AfterClass(alwaysRun = true)
-    public void cleanUpArtifacts() throws ApiException, InterruptedException {
+    public void cleanUpArtifacts() throws Exception {
         restAPIStore.deleteApplication(applicationID);
         Thread.sleep(2000);
+        undeployAndDeleteAPIRevisionsUsingRest(apiId, restAPIPublisher);
+        undeployAndDeleteAPIRevisionsUsingRest(apiId2, restAPIPublisher);
         restAPIPublisher.deleteAPI(apiId);
         restAPIPublisher.deleteAPI(apiId2);
     }

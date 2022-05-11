@@ -16,36 +16,40 @@
 
 package org.wso2.am.integration.tests.other;
 
-import org.apache.commons.codec.binary.Base64;
+import com.google.gson.Gson;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import org.apache.http.HttpStatus;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
+import org.wso2.am.integration.clients.admin.ApiException;
+import org.wso2.am.integration.clients.admin.ApiResponse;
+import org.wso2.am.integration.clients.admin.api.dto.APICategoryDTO;
+import org.wso2.am.integration.clients.admin.api.dto.APICategoryListDTO;
+import org.wso2.am.integration.clients.publisher.api.v1.dto.APIDTO;
+import org.wso2.am.integration.test.helpers.AdminApiTestHelper;
+import org.wso2.am.integration.test.impl.DtoFactory;
+import org.wso2.am.integration.test.utils.base.APIMIntegrationBaseTest;
 import org.wso2.am.integration.test.utils.base.APIMIntegrationConstants;
-import org.wso2.am.integration.test.utils.http.HTTPSClientUtils;
+import org.wso2.am.integration.test.utils.bean.APIRequest;
 import org.wso2.am.integration.tests.api.lifecycle.APIManagerLifecycleBaseTest;
 import org.wso2.carbon.automation.engine.context.TestUserMode;
+import org.wso2.carbon.automation.test.utils.http.client.HttpResponse;
 
-public class APICategoriesTestCase extends APIManagerLifecycleBaseTest {
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
+public class APICategoriesTestCase extends APIMIntegrationBaseTest {
     private final Log log = LogFactory.getLog(APICategoriesTestCase.class);
-    private String publisherURLHttps;
-    private String categoriesAdminAPIURL;
-    private String categoryId;
+    private AdminApiTestHelper adminApiTestHelper;
+    private APICategoryDTO apiCategoryDTO;
+    private String apiId;
 
     @Factory(dataProvider = "userModeDataProvider")
     public APICategoriesTestCase(TestUserMode userMode) {
@@ -55,133 +59,174 @@ public class APICategoriesTestCase extends APIManagerLifecycleBaseTest {
     @DataProvider
     public static Object[][] userModeDataProvider() {
         return new Object[][] { new Object[] { TestUserMode.SUPER_TENANT_ADMIN },
-                new Object[] { TestUserMode.TENANT_ADMIN }, };
+                new Object[] { TestUserMode.TENANT_ADMIN },};
     }
 
     @BeforeClass(alwaysRun = true)
     public void setEnvironment() throws Exception {
         super.init(userMode);
-        publisherURLHttps = publisherUrls.getWebAppURLHttps();
-        categoriesAdminAPIURL = publisherURLHttps + APIMIntegrationConstants.REST_API_ADMIN_CONTEXT_FULL_0
-                + APIMIntegrationConstants.REST_API_ADMIN_API_CATEGORIES_RESOURCE;
+        adminApiTestHelper = new AdminApiTestHelper();
     }
 
     @Test(groups = { "wso2.am" }, description = "Test add API category")
     public void testAddAPICategory() throws Exception {
-        try (CloseableHttpClient client = HTTPSClientUtils.getHttpsClient();) {
-            HttpPost post = new HttpPost(categoriesAdminAPIURL);
-            post.addHeader(APIMIntegrationConstants.AUTHORIZATION_HEADER,
-                    "Basic " + encodeCredentials(user.getUserName(), user.getPassword().toCharArray()));
-            post.addHeader("Content-Type", "application/json");
-            StringEntity payload = new StringEntity(
-                    "{\"name\": \"Marketing\", \"description\": \"Marketing category\"}", "UTF-8");
-            payload.setContentType("application/json");
-            post.setEntity(payload);
-            CloseableHttpResponse response = client.execute(post);
-            Assert.assertEquals(response.getStatusLine().getStatusCode(), 201);
 
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                try {
-                    String responsePayload = EntityUtils.toString(entity);
-                    JSONParser parser = new JSONParser();
-                    JSONObject object = (JSONObject) parser.parse(responsePayload);
-                    Assert.assertEquals((String) object.get("name"), "Marketing");
+        //Create the api category DTO
+        String name = "Marketing";
+        String description = "Marketing category";
+        apiCategoryDTO = DtoFactory.createApiCategoryDTO(name, description);
 
-                    //store the create category's UUID to later use in the category update test
-                    categoryId = (String) object.get("id");
-                } finally {
-                    response.close();
-                }
-            }
+        //Add the api category
+        ApiResponse<APICategoryDTO> addedApiCategory = restAPIAdmin.addApiCategory(apiCategoryDTO);
+
+        //Assert the status code and api category ID
+        Assert.assertEquals(addedApiCategory.getStatusCode(), HttpStatus.SC_CREATED);
+        APICategoryDTO addedApiCategoryDTO = addedApiCategory.getData();
+        String apiCategoryId = addedApiCategoryDTO.getId();
+        Assert.assertNotNull(apiCategoryId, "The api category ID cannot be null or empty");
+
+        apiCategoryDTO.setId(apiCategoryId);
+        //Verify the created api category DTO
+        adminApiTestHelper.verifyApiCategoryDTO(apiCategoryDTO, addedApiCategoryDTO);
+    }
+
+    @Test(groups = { "wso2.am" }, description = "Test add API category without Name", dependsOnMethods = "testAddAPICategory")
+    public void testAddAPICategoryWithoutName() {
+
+        //Create the API Category DTO
+        String description = "Marketing Category";
+        APICategoryDTO apiCategoryDTO = DtoFactory.createApiCategoryDTO(null, description);
+        //Add the API Category
+        try {
+            ApiResponse<APICategoryDTO> addedAPICategory = restAPIAdmin.addApiCategory(apiCategoryDTO);
+            Assert.assertNotEquals(addedAPICategory.getStatusCode(), HttpStatus.SC_CREATED,
+                    "API category was added without a name");
+        } catch (ApiException e) {
+            //Assert the Status Code
+            Assert.assertEquals(e.getCode(), HttpStatus.SC_BAD_REQUEST);
+        }
+    }
+
+    @Test(groups = { "wso2.am" }, description = "Test add API category Name With Special Characters", dependsOnMethods = "testAddAPICategoryWithoutName")
+    public void testAddAPICategoryNameWithSpecialCharacters() {
+
+        //Create the API Category DTO
+        String name = "Marketing Category";
+        String description = "This is Marketing Category";
+        APICategoryDTO apiCategoryDTO = DtoFactory.createApiCategoryDTO(name, description);
+
+        //Add the API Category
+        try {
+            ApiResponse<APICategoryDTO> addedAPICategory = restAPIAdmin.addApiCategory(apiCategoryDTO);
+            Assert.assertNotEquals(addedAPICategory.getStatusCode(), HttpStatus.SC_CREATED,
+                    "API category was added with special characters in the name");
+        } catch (ApiException e) {
+            //Assert the Status Code
+            Assert.assertEquals(e.getCode(), HttpStatus.SC_BAD_REQUEST);
         }
     }
 
     @Test(groups = { "wso2.am" }, description = "Test add API category with duplicate name", dependsOnMethods = {
-            "testAddAPICategory" })
-    public void addAPICategoryWithDuplicateName() throws Exception {
-        try (CloseableHttpClient client = HTTPSClientUtils.getHttpsClient();) {
-            HttpPost post = new HttpPost(categoriesAdminAPIURL);
-            post.addHeader(APIMIntegrationConstants.AUTHORIZATION_HEADER,
-                    "Basic " + encodeCredentials(user.getUserName(), user.getPassword().toCharArray()));
-            post.addHeader("Content-Type", "application/json");
-            StringEntity payload = new StringEntity(
-                    "{\"name\": \"Marketing\", \"description\": \"Marketing category\"}", "UTF-8");
-            payload.setContentType("application/json");
-            post.setEntity(payload);
-            CloseableHttpResponse response = client.execute(post);
-            try {
-                HttpEntity entity = response.getEntity();
-                String responsePayload = EntityUtils.toString(entity);
-                Assert.assertTrue(responsePayload.contains("Category with name 'Marketing' already exists"));
-                Assert.assertEquals(response.getStatusLine().getStatusCode(), 500);
-            } finally {
-                response.close();
-            }
+            "testAddAPICategoryNameWithSpecialCharacters" })
+    public void addAPICategoryWithDuplicateName() {
+
+        try {
+            //Add the duplicate api category
+            ApiResponse<APICategoryDTO> addedApiCategory = restAPIAdmin.addApiCategory(apiCategoryDTO);
+            Assert.assertNotEquals(addedApiCategory.getStatusCode(), HttpStatus.SC_CREATED,
+                    "Duplicate API category was added");
+        } catch (ApiException e) {
+            Assert.assertEquals(e.getCode(), HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            Assert.assertTrue(e.getResponseBody().contains("Category with name 'Marketing' already exists"));
         }
     }
 
     @Test(groups = { "wso2.am" }, description = "Test update API category", dependsOnMethods = {
             "addAPICategoryWithDuplicateName" })
     public void testUpdateAPICategory() throws Exception {
-        try (CloseableHttpClient client = HTTPSClientUtils.getHttpsClient();) {
-            HttpPut put = new HttpPut(categoriesAdminAPIURL + "/" + categoryId);
-            put.addHeader(APIMIntegrationConstants.AUTHORIZATION_HEADER,
-                    "Basic " + encodeCredentials(user.getUserName(), user.getPassword().toCharArray()));
-            put.addHeader("Content-Type", "application/json");
-            StringEntity payload = new StringEntity("{\"name\": \"Sales\", \"description\": \"Sales category\"}",
-                    "UTF-8");
-            payload.setContentType("application/json");
-            put.setEntity(payload);
-            try (CloseableHttpResponse response = client.execute(put);) {
-                HttpEntity entity = response.getEntity();
-                Assert.assertEquals(response.getStatusLine().getStatusCode(), 200);
-            }
-        }
+        String newDescription = "This is marketing category";
+        apiCategoryDTO.setDescription(newDescription);
+
+        ApiResponse<APICategoryDTO> updatedApiCategory = restAPIAdmin
+                .updateApiCategory(apiCategoryDTO.getId(), apiCategoryDTO);
+        APICategoryDTO updatedApiCategoryDTO = updatedApiCategory.getData();
+        Assert.assertEquals(updatedApiCategory.getStatusCode(), HttpStatus.SC_OK);
+
+        //Verify the updated api category DTO
+        adminApiTestHelper.verifyApiCategoryDTO(apiCategoryDTO, updatedApiCategoryDTO);
     }
 
     @Test(groups = { "wso2.am" }, description = "Test get API categories",
             dependsOnMethods = { "testUpdateAPICategory" })
     public void testGetAPICategoriesFromAdminAPI() throws Exception {
-        try (CloseableHttpClient client = HTTPSClientUtils.getHttpsClient();) {
-            HttpGet get = new HttpGet(categoriesAdminAPIURL);
-            get.addHeader(APIMIntegrationConstants.AUTHORIZATION_HEADER,
-                    "Basic " + encodeCredentials(user.getUserName(), user.getPassword().toCharArray()));
-            try (CloseableHttpResponse response = client.execute(get);) {
-                HttpEntity entity = response.getEntity();
-                String responsePayload = EntityUtils.toString(entity);
-                JSONParser parser = new JSONParser();
-                JSONObject object = (JSONObject) parser.parse(responsePayload);
-                int count = (int) (long) object.get("count");
-                Assert.assertEquals(count, 1);
-            }
+        //Retrieve all api categories
+        ApiResponse<APICategoryListDTO> retrievedApiCategories = restAPIAdmin.getApiCategories();
+        Assert.assertEquals(retrievedApiCategories.getStatusCode(), HttpStatus.SC_OK);
+
+        APICategoryListDTO apiCategoryListDTO = retrievedApiCategories.getData();
+        List<APICategoryDTO> apiCategoryDTOS = apiCategoryListDTO.getList();
+        //Verify the retrieved api categories
+        for (APICategoryDTO apiCategory : apiCategoryDTOS) {
+            //Since there is only one api category available, the global apiCategoryDTO
+            //object is used to verify the retrieved api category
+            adminApiTestHelper.verifyApiCategoryDTO(apiCategoryDTO, apiCategory);
         }
+    }
+
+    @Test(groups = { "wso2.am" }, description = "Test attach API category to API", dependsOnMethods = {
+            "testGetAPICategoriesFromAdminAPI" })
+    public void testAttachAPICategoryToAPI() throws Exception {
+
+        //Add API
+        String apiName = "CategoryTestAPI";
+        String apiContext = "category";
+        String apiVersion = "1.0";
+        String url = getGatewayURLHttp() + "jaxrs_basic/services/customers/customerservice";
+        APIRequest apiRequest = new APIRequest(apiName, apiContext, new URL(url));
+        apiRequest.setVersion(apiVersion);
+        apiRequest.setTiersCollection(APIMIntegrationConstants.API_TIER.UNLIMITED);
+        apiRequest.setTier(APIMIntegrationConstants.API_TIER.UNLIMITED);
+        apiRequest.setProvider(user.getUserName());
+
+        //Add the API using the API publisher.
+        HttpResponse postResponse = restAPIPublisher.addAPI(apiRequest);
+        apiId = postResponse.getData();
+
+        //update API with category mapping
+        List<String> apiCategories = new ArrayList<>();
+        apiCategories.add("Marketing");
+        apiRequest.setApiCategories(apiCategories);
+        HttpResponse updateResponse = restAPIPublisher.updateAPI(apiRequest, apiId);
+
+        waitForAPIDeployment();
+        HttpResponse getResponse = restAPIPublisher.getAPI(updateResponse.getData());
+
+        Gson g = new Gson();
+        APIDTO apidto = g.fromJson(getResponse.getData(), APIDTO.class);
+        List<String> categoriesInReceivedAPI = apidto.getCategories();
+        Assert.assertNotNull(categoriesInReceivedAPI);
+        Assert.assertTrue(categoriesInReceivedAPI.contains("Marketing"));
+
+        removeAPICategoryFromAPI(apiRequest);
+    }
+
+    private void removeAPICategoryFromAPI(APIRequest apiRequest) throws Exception {
+        List<String> apiCategories = new ArrayList<>();
+        apiRequest.setApiCategories(apiCategories);
+        restAPIPublisher.updateAPI(apiRequest, apiId);
+        waitForAPIDeployment();
     }
 
     @Test(groups = { "wso2.am" }, description = "Test delete API category", dependsOnMethods = {
             "testGetAPICategoriesFromAdminAPI" })
     public void testDeleteAPICategory() throws Exception {
-        try (CloseableHttpClient client = HTTPSClientUtils.getHttpsClient();) {
-            HttpDelete delete = new HttpDelete(categoriesAdminAPIURL + "/" + categoryId);
-            delete.addHeader(APIMIntegrationConstants.AUTHORIZATION_HEADER,
-                    "Basic " + encodeCredentials(user.getUserName(), user.getPassword().toCharArray()));
-            try (CloseableHttpResponse response = client.execute(delete);) {
-                Assert.assertEquals(response.getStatusLine().getStatusCode(), 200);
-            }
-        }
+        ApiResponse<Void> apiResponse = restAPIAdmin.deleteApiCategory(apiCategoryDTO.getId());
+        Assert.assertEquals(apiResponse.getStatusCode(), HttpStatus.SC_OK);
     }
 
-    /**
-     * get the base64 encoded username and password
-     *
-     * @param user username
-     * @param pass password
-     * @return encoded basic auth, as string
-     */
-    private static String encodeCredentials(String user, char[] pass) {
-        StringBuilder builder = new StringBuilder(user).append(':').append(pass);
-        String cred = builder.toString();
-        byte[] encodedBytes = Base64.encodeBase64(cred.getBytes());
-        return new String(encodedBytes);
+    @AfterClass(alwaysRun = true)
+    public void destroy() throws Exception {
+        restAPIPublisher.deleteAPI(apiId);
+        super.cleanUp();
     }
 }

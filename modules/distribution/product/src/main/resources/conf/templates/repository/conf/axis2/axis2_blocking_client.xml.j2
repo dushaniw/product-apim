@@ -21,6 +21,21 @@
     <!-- ================================================= -->
     <!-- Parameters -->
     <!-- ================================================= -->
+    {% for parameter in transport.blocking.parameters %}
+    <parameter name="{{parameter.name}}" locked="false">{{parameter.value}}</parameter>
+    {% endfor %}
+
+    {% if transport.blocking.proxy is defined %}
+    <parameter name="Proxy">
+        <parameters>
+            <ProxyHost>{{transport.blocking.proxy.host}}</ProxyHost>
+            <ProxyPort>{{transport.blocking.proxy.port}}</ProxyPort>
+            <ProxyUser>{{transport.blocking.proxy.username}}</ProxyUser>
+            <ProxyPassword>{{transport.blocking.proxy.password}}</ProxyPassword>
+        </parameters>
+    </parameter>
+    {% endif %}
+    
     <parameter name="hotdeployment">true</parameter>
     <parameter name="hotupdate">false</parameter>
     <parameter name="enableMTOM">false</parameter>
@@ -136,6 +151,10 @@
         <messageFormatter contentType="application/octet-stream"
                           class="{{message_formatter.octet_stream}}"/>
 
+    {% for message_formatter in blocking.custom_message_formatters %}
+        <messageFormatter contentType="{{message_formatter.content_type}}"
+                          class="{{message_formatter.class}}"/>
+    {% endfor %} 
     </messageFormatters>
     <!-- ================================================= -->
     <!--                Message Builders                   -->
@@ -164,6 +183,10 @@
                         class="{{message_builder.text_plain}}"/>
         <messageBuilder contentType="application/octet-stream"
                         class="{{message_builder.octet_stream}}"/>
+    {% for message_builder in blocking.custom_message_builders %}
+        <messageBuilder contentType="{{message_builder.content_type}}"
+                        class="{{message_builder.class}}"/>
+    {% endfor %}
     </messageBuilders>
 
 

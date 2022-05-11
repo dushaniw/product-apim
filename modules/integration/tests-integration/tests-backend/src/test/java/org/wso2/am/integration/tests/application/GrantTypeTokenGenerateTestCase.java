@@ -28,10 +28,12 @@ import org.json.JSONObject;
 import org.testng.Assert;
 import org.testng.annotations.*;
 import org.wso2.am.integration.clients.publisher.api.v1.dto.APIOperationsDTO;
+import org.wso2.am.integration.clients.store.api.ApiException;
 import org.wso2.am.integration.clients.store.api.ApiResponse;
 import org.wso2.am.integration.clients.store.api.v1.dto.ApplicationDTO;
 import org.wso2.am.integration.clients.store.api.v1.dto.ApplicationKeyDTO;
 import org.wso2.am.integration.clients.store.api.v1.dto.ApplicationKeyGenerateRequestDTO;
+import org.wso2.am.integration.test.utils.APIManagerIntegrationTestException;
 import org.wso2.am.integration.test.utils.base.APIMIntegrationConstants;
 import org.wso2.am.integration.test.utils.bean.*;
 import org.wso2.am.integration.test.utils.http.HTTPSClientUtils;
@@ -39,11 +41,15 @@ import org.wso2.am.integration.tests.api.lifecycle.APIManagerLifecycleBaseTest;
 import org.wso2.am.integration.tests.restapi.RESTAPITestConstants;
 import org.wso2.carbon.automation.engine.annotations.ExecutionEnvironment;
 import org.wso2.carbon.automation.engine.annotations.SetEnvironment;
+import org.wso2.carbon.automation.engine.context.AutomationContext;
 import org.wso2.carbon.automation.engine.context.TestUserMode;
 import org.wso2.carbon.automation.test.utils.http.client.HttpResponse;
+import org.wso2.carbon.integration.common.utils.mgt.ServerConfigurationManager;
 
+import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,12 +75,12 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
     private final String TAGS = "grantType,implicitly,code";
     private final String APPLICATION_CONTENT_TYPE = "application/x-www-form-urlencoded";
     private final String LOCATION_HEADER = "Location";
+    private final String SET_COOKIE_HEADER = "Set-Cookie";
     private final String AUTHORIZATION_CODE_GRANT_TYPE = "authorization_code";
     private final String TIER_COLLECTION = APIMIntegrationConstants.API_TIER.UNLIMITED;
     private String endpointUrl;
     private Map<String, String> requestHeaders = new HashMap<String, String>();
     private String consumerKey, consumerSecret;
-    private String authorizeURL;
     private String tokenURL;
     private String identityLoginURL;
     private String apiId;
@@ -84,10 +90,30 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
     private Map<String, String> headers = new HashMap<String, String>();
     private ArrayList<String> grantTypes = new ArrayList<>();
     private APIRequest apiRequest;
+    private ServerConfigurationManager serverConfigurationManager;
+    private AutomationContext superTenantKeyManagerContext;
 
     @Factory(dataProvider = "userModeDataProvider")
     public GrantTypeTokenGenerateTestCase(TestUserMode userMode) {
         this.userMode = userMode;
+    }
+
+    @BeforeTest(alwaysRun = true)
+    public void loadConfiguration() throws Exception {
+
+        superTenantKeyManagerContext = new AutomationContext(APIMIntegrationConstants.AM_PRODUCT_GROUP_NAME,
+                APIMIntegrationConstants.AM_KEY_MANAGER_INSTANCE, TestUserMode.SUPER_TENANT_ADMIN);
+
+        try {
+            serverConfigurationManager = new ServerConfigurationManager(superTenantKeyManagerContext);
+
+            //Apply application consent page related config
+            serverConfigurationManager.applyConfiguration(new File(
+                    getAMResourceLocation() + File.separator + "configFiles" + File.separator + "applicationConsentPage"
+                            + File.separator + "deployment.toml"));
+        } catch (Exception e) {
+            throw new APIManagerIntegrationTestException("Error while changing server configuration", e);
+        }
     }
 
     @BeforeClass(alwaysRun = true)
@@ -95,9 +121,8 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
         super.init(userMode);
         storeURLHttp = getStoreURLHttp();
         endpointUrl = backEndServerUrl.getWebAppURLHttp() + "am/sample/calculator/v1/api";
-        authorizeURL = gatewayUrlsWrk.getWebAppURLNhttps() + "/authorize";
-        tokenURL = gatewayUrlsWrk.getWebAppURLNhttps() + "/token";
-        identityLoginURL = getKeyManagerURLHttps() + "/oauth2/authorize";
+        tokenURL = getKeyManagerURLHttps() + "oauth2/token";
+        identityLoginURL = getKeyManagerURLHttps() + "oauth2/authorize";
 
         //create Application
         HttpResponse applicationResponse = restAPIStore.createApplication(APP_NAME,
@@ -165,18 +190,21 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
         //Sending first request to approve grant authorization to app
         headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
         String url =
-                authorizeURL + "?response_type=code&" + "client_id=" + consumerKey + "&scope=PRODUCTION&redirect_uri="
+                identityLoginURL + "?response_type=code&" + "client_id=" + consumerKey + "&scope=PRODUCTION&redirect_uri="
                         + CALLBACK_URL;
         HttpResponse res = HTTPSClientUtils.doGet(url, headers);
         Assert.assertEquals(res.getResponseCode(), HttpStatus.SC_MOVED_TEMPORARILY, "Response code is not as expected");
         String locationHeader = res.getHeaders().get(LOCATION_HEADER);
         Assert.assertNotNull(locationHeader, "Couldn't found Location Header");
+        String sessionNonceCookie = res.getHeaders().get(SET_COOKIE_HEADER);
+        Assert.assertNotNull(sessionNonceCookie, "Couldn't find the sessionNonceCookie Header");
         String sessionDataKey = getURLParameter(locationHeader, "sessionDataKey");
         Assert.assertNotNull(sessionDataKey, "Couldn't found sessionDataKey from the Location Header");
 
         //Login to the Identity with user/pass
         headers.clear();
         headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
+        headers.put("Cookie", sessionNonceCookie);
         urlParameters.add(new BasicNameValuePair("username", user.getUserName()));
         urlParameters.add(new BasicNameValuePair("password", user.getPassword()));
         urlParameters.add(new BasicNameValuePair("tocommonauth", "true"));
@@ -193,6 +221,7 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
         headers.clear();
         urlParameters.clear();
         headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
+        headers.put("Cookie", sessionNonceCookie);
         urlParameters.add(new BasicNameValuePair("consent", "approve"));
         urlParameters.add(new BasicNameValuePair("hasApprovedAlways", "false"));
         urlParameters.add(new BasicNameValuePair("sessionDataKeyConsent", sessionDataKeyConsent));
@@ -235,18 +264,21 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
         //Sending first request to approve grant authorization to app
         headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
         String url =
-                authorizeURL + "?response_type=token&" + "client_id=" + consumerKey + "&scope=PRODUCTION&redirect_uri="
+                identityLoginURL + "?response_type=token&" + "client_id=" + consumerKey + "&scope=PRODUCTION&redirect_uri="
                         + CALLBACK_URL;
         HttpResponse res = HTTPSClientUtils.doGet(url, headers);
         Assert.assertEquals(res.getResponseCode(), HttpStatus.SC_MOVED_TEMPORARILY, "Response code is not as expected");
         String locationHeader = res.getHeaders().get(LOCATION_HEADER);
         Assert.assertNotNull(locationHeader, "Couldn't found Location Header");
+        String sessionNonceCookie = res.getHeaders().get(SET_COOKIE_HEADER);
+        Assert.assertNotNull(sessionNonceCookie, "Couldn't find the sessionNonceCookie Header");
         String sessionDataKey = getURLParameter(locationHeader, "sessionDataKey");
         Assert.assertNotNull(sessionDataKey, "Couldn't found sessionDataKey from the Location Header");
 
         //Login to the Identity with user/pass
         headers.clear();
         headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
+        headers.put("Cookie", sessionNonceCookie);
         urlParameters.add(new BasicNameValuePair("username", user.getUserName()));
         urlParameters.add(new BasicNameValuePair("password", user.getPassword()));
         urlParameters.add(new BasicNameValuePair("tocommonauth", "true"));
@@ -263,6 +295,7 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
         headers.clear();
         urlParameters.clear();
         headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
+        headers.put("Cookie", sessionNonceCookie);
         urlParameters.add(new BasicNameValuePair("consent", "approve"));
         urlParameters.add(new BasicNameValuePair("hasApprovedAlways", "false"));
         urlParameters.add(new BasicNameValuePair("sessionDataKeyConsent", sessionDataKeyConsent));
@@ -283,7 +316,7 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
     }
 
     @Test(groups = { "wso2.am" }, description = "Test Application Creation without callback URL",
-            dependsOnMethods = "testImplicit")
+            dependsOnMethods = "testImplicit", expectedExceptions = ApiException.class)
     public void testApplicationCreationWithoutCallBackURL() throws Exception {
         //create Application
         HttpResponse applicationResponse = restAPIStore.createApplication(CALLBACK_URL_UPDATE_APP_NAME,
@@ -306,16 +339,12 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
 
         //generate the key for the subscription
 
-        ApplicationKeyDTO applicationKeyDTO = restAPIStore
-                .generateKeys(applicationIdWithoutCallback, "3600", "", ApplicationKeyGenerateRequestDTO.KeyTypeEnum.PRODUCTION,
-                        null, grantTypes);
+        ApiResponse<ApplicationKeyDTO> response = restAPIStore
+                .generateKeysWithApiResponse(applicationIdWithoutCallback, "3600", "", ApplicationKeyGenerateRequestDTO.KeyTypeEnum.PRODUCTION,
+                        null, grantTypes, Collections.emptyMap(),null);
 
-        assertNotNull(applicationKeyDTO.getToken().getAccessToken());
-
-        consumerKey = applicationKeyDTO.getConsumerKey();
-        consumerSecret = applicationKeyDTO.getConsumerSecret();
-        Assert.assertNotNull(consumerKey, "Consumer Key not found");
-        Assert.assertNotNull(consumerSecret, "Consumer Secret not found ");
+        assertEquals(response.getStatusCode(), HTTP_RESPONSE_CODE_BAD_REQUEST,
+                "Test Application Creation without callback URL not successful");
     }
 
     @Test(groups = { "wso2.am" }, description = "Test authorization_code token generation",
@@ -325,7 +354,7 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
         //Sending first request to approve grant authorization to app
         headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
         String url =
-                authorizeURL + "?response_type=code&" + "client_id=" + consumerKey + "&scope=PRODUCTION&redirect_uri=";
+                identityLoginURL + "?response_type=code&" + "client_id=" + consumerKey + "&scope=PRODUCTION&redirect_uri=";
         HttpResponse res = HTTPSClientUtils.doGet(url, headers);
         Assert.assertEquals(res.getResponseCode(), HttpStatus.SC_MOVED_TEMPORARILY, "Response code is not as expected");
         String locationHeader = res.getHeaders().get(LOCATION_HEADER);
@@ -333,33 +362,53 @@ public class GrantTypeTokenGenerateTestCase extends APIManagerLifecycleBaseTest 
         Assert.assertTrue(locationHeader.contains("oauthErrorCode"), "Redirection page should be a error page");
     }
 
-    @Test(groups = { "wso2.am" }, description = "Test authorization_code token generation",
-            dependsOnMethods = "testAuthRequestWithoutCallbackURL")
-    public void testApplicationUpdateAndTestKeyGeneration() throws Exception {
+    @Test(groups = { "wso2.am" }, description = "Test application display name in consent page",
+            dependsOnMethods = "testApplicationCreation")
+    public void testAuthCodeAppDisplayName() throws Exception {
 
-        ApplicationKeyDTO applicationKeyDTO = new ApplicationKeyDTO();
-        applicationKeyDTO.setKeyType(ApplicationKeyDTO.KeyTypeEnum.PRODUCTION);
-        applicationKeyDTO.setCallbackUrl(CALLBACK_URL);
-        applicationKeyDTO.setSupportedGrantTypes(grantTypes);
+        //Sending first request to approve grant authorization to app
+        headers.clear();
+        headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
+        String url = identityLoginURL + "?response_type=code&" + "client_id=" + consumerKey
+                + "&scope=PRODUCTION&redirect_uri=" + CALLBACK_URL;
+        HttpResponse res = HTTPSClientUtils.doGet(url, headers);
+        String sessionNonceCookie = res.getHeaders().get(SET_COOKIE_HEADER);
+        String sessionDataKey = getURLParameter(res.getHeaders().get(LOCATION_HEADER), "sessionDataKey");
 
-        ApiResponse<ApplicationKeyDTO> updateResponse = restAPIStore
-                .updateKeys(applicationIdWithoutCallback, ApplicationKeyDTO.KeyTypeEnum.PRODUCTION.toString(),
-                        applicationKeyDTO);
-        assertEquals(updateResponse.getStatusCode(), HTTP_RESPONSE_CODE_OK,
-                "Response code mismatched when adding an application");
+        //Login to the Identity with user/pass
+        headers.clear();
+        headers.put("Content-Type", APPLICATION_CONTENT_TYPE);
+        headers.put("Cookie", sessionNonceCookie);
+        urlParameters.add(new BasicNameValuePair("username", user.getUserName()));
+        urlParameters.add(new BasicNameValuePair("password", user.getPassword()));
+        urlParameters.add(new BasicNameValuePair("tocommonauth", "true"));
+        urlParameters.add(new BasicNameValuePair("sessionDataKey", sessionDataKey));
 
+        res = HTTPSClientUtils.doPost(identityLoginURL, headers, urlParameters);
+        Assert.assertEquals(res.getResponseCode(), HttpStatus.SC_MOVED_TEMPORARILY, "Response code is not as expected");
+        String locationHeader = res.getHeaders().get(LOCATION_HEADER);
+        Assert.assertNotNull(locationHeader, "Couldn't found Location Header");
 
-        //Test the Authorization Code key generation with updates values
-        testAuthCode();
-        //Test the Implicit key generation with updates values
-        testImplicit();
+        //Test application display name in consent page
+        res = HTTPSClientUtils.doGet(locationHeader, null);
+        Assert.assertEquals(res.getResponseCode(), HttpStatus.SC_OK, "Response code is not as expected");
+        Assert.assertEquals(res.getData().contains(APP_NAME), true,
+                "App display name in consent page is not as expected");
     }
 
     @AfterClass(alwaysRun = true)
     public void destroy() throws Exception {
         restAPIStore.deleteApplication(applicationId);
         restAPIStore.deleteApplication(applicationIdWithoutCallback);
+        undeployAndDeleteAPIRevisionsUsingRest(apiId, restAPIPublisher);
         restAPIPublisher.deleteAPI(apiId);
+    }
+
+    @AfterTest(alwaysRun = true)
+    public void restoreConfiguration() throws Exception {
+
+        //Remove application consent page related config
+        serverConfigurationManager.restoreToLastConfiguration();
     }
 
     @DataProvider

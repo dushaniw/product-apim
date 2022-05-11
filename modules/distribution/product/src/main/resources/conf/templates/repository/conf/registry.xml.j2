@@ -58,11 +58,11 @@
         <registryRoot>/</registryRoot>
     </remoteInstance>
 
-    <mount path="/_system/governance" overwrite="true">
+    <mount path="/_system/governance" overwrite="{{governance_data.overwrite}}">
         <instanceId>gov</instanceId>
         <targetPath>{{governance_data.path}}</targetPath>
     </mount>
-    <mount path="/_system/config" overwrite="true">
+    <mount path="/_system/config" overwrite="{{config_data.overwrite}}">
         <instanceId>conf</instanceId>
         <targetPath>{{config_data.path}}</targetPath>
     </mount>
@@ -124,11 +124,46 @@
          </filter>
     </handler>
 
+    <!--Config for custom registry handlers.-->
+    {% for handler in registry_handler %}
+    <handler class="{{handler.class}}" {% if handler.method is defined %} method="{{handler.method}}" {% endif %}>
+        {% for propKey,propValue in handler.properties.items() %}
+        <property name="{{propKey}}">{{propValue}}</property>
+        {% endfor %}
+        {% if handler.nested_property.enable %}
+        <property name="{{handler.nested_property.name}}" type="{{handler.nested_property.type}}">
+            {% for prop in nested_properties[handler.nested_property.name] %}
+                <{{prop.tag}} {% if prop.key is defined %} key="{{prop.key}}" {% endif %}>{{prop.value}}</{{prop.tag}}>
+            {% endfor %}
+        </property>
+        {% endif %}
+        <filter class="{{handler.filter_class}}">
+            {% for filterPropKey,filterPropValue in handler.filter_properties.items() %}
+            <property name="{{filterPropKey}}">{{filterPropValue}}</property>
+            {% endfor %}
+        </filter>
+    </handler>
+    {% endfor %}
+
     <!--This handler clears the caches when tenant-config is updated.-->
    <handler class="org.wso2.carbon.apimgt.impl.handlers.TenantConfigMediaTypeHandler" methods="PUT,DELETE">
       <filter class="org.wso2.carbon.registry.core.jdbc.handlers.filters.MediaTypeMatcher">
         <property name="mediaType">tenant-config</property>
     </filter>
+   </handler>
+
+   <!--This handler clears the extensions caches when tenant-config is updated.-->
+   <handler class="org.wso2.is.key.manager.core.handlers.TenantConfigMediaTypeHandler" methods="PUT,DELETE">
+      <filter class="org.wso2.carbon.registry.core.jdbc.handlers.filters.MediaTypeMatcher">
+        <property name="mediaType">tenant-config</property>
+     </filter>
+   </handler>
+
+   <!--This handler updates ga-config local entry when ga-config in the registry is updated.-->
+   <handler class="org.wso2.carbon.apimgt.impl.handlers.GAConfigMediaTypeHandler" methods="PUT">
+      <filter class="org.wso2.carbon.registry.core.jdbc.handlers.filters.MediaTypeMatcher">
+        <property name="mediaType">ga-config</property>
+      </filter>
    </handler>
 
     <!-- This handler processes the links for the lifecycle -->
@@ -215,6 +250,12 @@
     </filter>
    </handler>
 
+    <!--This handler clears the caches when APILifecycle config is updated.-->
+    <handler class="org.wso2.carbon.apimgt.impl.handlers.LifecycleModificationHandler" methods="PUT,DELETE">
+        <filter class="org.wso2.carbon.registry.core.jdbc.handlers.filters.URLMatcher">
+            <property name="pattern">.*</property>
+        </filter>
+    </handler>
     <!--This handler hides the password of secure endpoints if specified, in an API-->
     <!--handler class="org.wso2.carbon.apimgt.impl.handlers.APIEndpointPasswordRegistryHandler" methods="GET,PUT">
         <filter class="org.wso2.carbon.registry.core.jdbc.handlers.filters.MediaTypeMatcher">
@@ -279,23 +320,23 @@
             <indexer class="org.wso2.carbon.registry.indexing.indexer.MSWordIndexer" mediaTypeRegEx="application/msword"/>
             <indexer class="org.wso2.carbon.registry.indexing.indexer.PDFIndexer" mediaTypeRegEx="application/pdf"/>
             <indexer class="org.wso2.carbon.registry.indexing.indexer.XMLIndexer" mediaTypeRegEx="application/xml"/-->
-            <!--indexer class="org.wso2.carbon.governance.registry.extensions.indexers.RXTIndexer" mediaTypeRegEx="application/wsdl\+xml" profiles ="default,api-devportal,api-publisher"/>
-            <indexer class="org.wso2.carbon.governance.registry.extensions.indexers.RXTIndexer" mediaTypeRegEx="application/x-xsd\+xml " profiles ="default,api-devportal,api-publisher"/>
-            <indexer class="org.wso2.carbon.governance.registry.extensions.indexers.RXTIndexer" mediaTypeRegEx="application/policy\+xml" profiles ="default,api-devportal,api-publisher"/-->
-            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.DocumentIndexer" mediaTypeRegEx="application/vnd.wso2-document\+xml" profiles ="default,api-devportal,api-publisher"/>
-            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.CustomAPIIndexer" mediaTypeRegEx="application/vnd.(.)+\+xml" profiles ="default,api-devportal,api-publisher"/>
+            <!--indexer class="org.wso2.carbon.governance.registry.extensions.indexers.RXTIndexer" mediaTypeRegEx="application/wsdl\+xml" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+            <indexer class="org.wso2.carbon.governance.registry.extensions.indexers.RXTIndexer" mediaTypeRegEx="application/x-xsd\+xml " profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+            <indexer class="org.wso2.carbon.governance.registry.extensions.indexers.RXTIndexer" mediaTypeRegEx="application/policy\+xml" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/-->
+            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.DocumentIndexer" mediaTypeRegEx="application/vnd.wso2-document\+xml" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.CustomAPIIndexer" mediaTypeRegEx="application/vnd.(.)+\+xml" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
             <!--indexer class="org.wso2.carbon.registry.indexing.indexer.XMLIndexer" mediaTypeRegEx="application/(.)+\+xml"/>
             <indexer class="org.wso2.carbon.registry.indexing.indexer.PlainTextIndexer" mediaTypeRegEx="text/(.)+"/>
             <indexer class="org.wso2.carbon.registry.indexing.indexer.PlainTextIndexer" mediaTypeRegEx="application/x-javascript"/-->
-            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.PlainTextIndexer" mediaTypeRegEx="text/plain+" profiles ="default,api-devportal,api-publisher"/>
-            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.PDFIndexer" mediaTypeRegEx="application/pdf" profiles ="default,api-devportal,api-publisher"/>
-            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.MSWordIndexer" mediaTypeRegEx="application/msword" profiles ="default,api-devportal,api-publisher"/>
-            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.MSPowerpointIndexer" mediaTypeRegEx="application/vnd.ms-powerpoint" profiles ="default,api-devportal,api-publisher"/>
-            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.MSExcelIndexer" mediaTypeRegEx="application/vnd.ms-excel" profiles ="default,api-devportal,api-publisher"/>
-            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.XMLIndexer" mediaTypeRegEx="application/xml" profiles ="default,api-devportal,api-publisher"/>
-    	    <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.WSDLIndexer" mediaTypeRegEx="application/api-wsdl" profiles ="default,api-devportal,api-publisher"/>
+            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.PlainTextIndexer" mediaTypeRegEx="text/plain+" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.PDFIndexer" mediaTypeRegEx="application/pdf" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.MSWordIndexer" mediaTypeRegEx="application/msword" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.MSPowerpointIndexer" mediaTypeRegEx="application/vnd.ms-powerpoint" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.MSExcelIndexer" mediaTypeRegEx="application/vnd.ms-excel" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+            <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.XMLIndexer" mediaTypeRegEx="application/xml" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
+    	    <indexer class="org.wso2.carbon.apimgt.impl.indexing.indexer.WSDLIndexer" mediaTypeRegEx="application/api-wsdl" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
     	    {% for custom_indexer in custom_indexers %}
-    	        <indexer class="{{custom_indexer.class}}" mediaTypeRegEx="{{custom_indexer.media_type_regex}}" profiles ="default,api-devportal,api-publisher"/>
+    	        <indexer class="{{custom_indexer.class}}" mediaTypeRegEx="{{custom_indexer.media_type_regex}}" profiles ="default,api-devportal-deprecated,api-publisher-deprecated,control-plane"/>
     	    {% endfor %}
         </indexers>
         <exclusions>
@@ -304,7 +345,6 @@
         </exclusions>
     </indexingConfiguration>
 
-    
     <versionResourcesOnChange>false</versionResourcesOnChange>
 
     <!-- NOTE: You can edit the options under "StaticConfiguration" only before the

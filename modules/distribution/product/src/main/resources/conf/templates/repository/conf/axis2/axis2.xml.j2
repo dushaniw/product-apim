@@ -87,6 +87,9 @@
     <!-- Synapse Server name parameter -->
     <parameter name="SynapseConfig.ServerName" locked="false">localhost</parameter>
 
+    <!-- Configuration to include full Security Exception Message -->
+    <parameter name="includeFullWSSecurityExceptionMessage" locked="false">true</parameter>
+
     <!-- To override repository/services you need to uncomment following parameter and value -->
     <!-- SHOULD be absolute file path. -->
     <!--<parameter name="ServicesDirectory" locked="false">service</parameter>-->
@@ -170,7 +173,8 @@
                               class="{{message_formatter.text_javascript}}"/>
     <messageFormatter contentType="text/plain"
                          class="{{message_formatter.text_plain}}"/>
-
+        <messageFormatter contentType="text/event-stream"
+                             class="{{message_formatter.text_eventstream}}"/>
         <messageFormatter contentType="text/html"
                           class="{{message_formatter.text_html}}"/>
 
@@ -208,10 +212,12 @@
                         class="{{message_builder.text_html}}"/>
         <messageBuilder contentType="text/plain"
                         class="{{message_builder.text_plain}}"/>
+        <messageBuilder contentType="text/event-stream"
+                                class="{{message_builder.text_eventstream}}"/>
         <messageBuilder contentType="application/octet-stream"
                         class="{{message_builder.octet_stream}}"/>
    {% for message_builder in custom_message_builders %}
-    <messageFormatter contentType="{{message_builder.content_type}}"
+    <messageBuilder contentType="{{message_builder.content_type}}"
                           class="{{message_builder.class}}"/>
      {% endfor %}
     </messageBuilders>
@@ -220,12 +226,15 @@
     <!--             Transport Ins (Listeners)             -->
     <!-- ================================================= -->
 
+    {% if transport.passthru_http.listener.enable %}
     <transportReceiver name="http" class="org.apache.synapse.transport.passthru.PassThroughHttpListener">
      {% for parameter_key,parameter_value in transport.passthru_http.listener.parameters.items() %}
         <parameter name="{{parameter_key}}" locked="false">{{parameter_value}}</parameter>
     {% endfor %}
     </transportReceiver>
+    {% endif %}
 
+    {% if transport.passthru_https.listener.enable %}
    <transportReceiver name="https" class="org.apache.synapse.transport.passthru.PassThroughHttpMultiSSLListener">
      {% for parameter_key,parameter_value in transport.passthru_https.listener.parameters.items() %}
         <parameter name="{{parameter_key}}" locked="false">{{parameter_value}}</parameter>
@@ -254,7 +263,7 @@
            <fileReadInterval>{{transport.passthru_https.listener.ssl_profile_interval}}</fileReadInterval>
        </parameter>
     </transportReceiver>
-
+    {% endif %}
 
     <transportReceiver name="local" class="org.wso2.carbon.core.transports.local.CarbonLocalTransportReceiver"/>
 
@@ -290,15 +299,46 @@
     <!--             Transport Outs (Senders)              -->
     <!-- ================================================= -->
 
+    {% if transport.passthru_http.sender.enable %}
     <transportSender name="http" class="org.apache.synapse.transport.passthru.PassThroughHttpSender">
          {% for parameter_key,parameter_value in transport.passthru_http.sender.parameters.items() %}
             <parameter name="{{parameter_key}}" locked="false">{{parameter_value}}</parameter>
         {% endfor %}
+        {% if transport.http.proxy_profile is defined %}
+            <parameter name="proxyProfiles">
+            {% for profile in transport.http.proxy_profile %}
+                <profile>
+                    <targetHosts>{% for hostitem in profile.target_hosts.toList() %}{{hostitem}}{% if loop.index < profile.target_hosts.toList()|length %},{% endif %}{% endfor %}</targetHosts>
+                    <proxyHost>{{profile.proxy_host}}</proxyHost>
+                    <proxyPort>{{profile.proxy_port}}</proxyPort>
+                    {% if profile.proxy_username is defined %}
+                    <proxyUserName>{{profile.proxy_username}}</proxyUserName>
+                    {% endif %}
+                    {% if profile.proxy_password is defined %}
+                    <proxyPassword>{{profile.proxy_password}}</proxyPassword>
+                    {% endif %}
+                    {% if profile.bypass_hosts is defined %}
+                    <bypass>{% for bypassitem in profile.bypass_hosts.toList() %}{{bypassitem}}{% if loop.index < profile.bypass_hosts.toList()|length %},{% endif %}{% endfor %}</bypass>
+                    {% endif %}
+                </profile>
+            {% endfor %}
+            </parameter>
+        {% endif %}
     </transportSender>
+    {% endif %}
+
+    {% if transport.netty.http.sender.enable == true %}
+        <transportSender name="httpws" class="{{transport.netty.http.sender.class}}">
+            <parameter name="non-blocking" locked="false">true</parameter>
+            {% for parameter_key,parameter_value in transport.netty.http.sender.parameter.items() %}
+            <parameter name="{{parameter_key}}" locked="false">{{parameter_value}}</parameter>
+            {% endfor %}
+        </transportSender>
+    {% endif %}
 
     <transportSender name="local" class="org.wso2.carbon.core.transports.local.CarbonLocalTransportSender"/>
 
-
+    {% if transport.passthru_https.sender.enable %}
     <transportSender name="https" class="org.apache.synapse.transport.passthru.PassThroughHttpSSLSender">
          {% for parameter_key,parameter_value in transport.passthru_https.sender.parameters.items() %}
             <parameter name="{{parameter_key}}" locked="false">{{parameter_value}}</parameter>
@@ -326,18 +366,83 @@
             <filePath>{{transport.passthru_https.sender.ssl_profile.file_path}}</filePath>
             <fileReadInterval>{{transport.passthru_https.sender.ssl_profile.interval}}</fileReadInterval>
         </parameter>
-    </transportSender>
-
-{% if transport.jms.sender.connection_factories is defined %}
-     <transportSender name="jms" class="org.apache.axis2.transport.jms.JMSSender">
-         {% for connection_factory in transport.jms.sender.connection_factories %}
-             <parameter name="{{transport.jms.sender[connection_factory].name}}" locked="false">
-             {% for name,value in transport.jms.sender[connection_factory].parameters.items() %}
-                     <parameter name="{{name}}" locked="false">{{value}}</parameter>
-              {% endfor %}
-             </parameter>
+       {% if transport.http.secured_proxy_profile is defined %}
+       <parameter name="proxyProfiles">
+       {% for profile in transport.http.secured_proxy_profile %}
+            <profile>
+                <targetHosts>{% for hostitem in profile.target_hosts.toList() %}{{hostitem}}{% if loop.index < profile.target_hosts.toList()|length %},{% endif %}{% endfor %}</targetHosts>
+                <proxyHost>{{profile.proxy_host}}</proxyHost>
+                <proxyPort>{{profile.proxy_port}}</proxyPort>
+                {% if profile.proxy_username is defined %}
+                <proxyUserName>{{profile.proxy_username}}</proxyUserName>
+                {% endif %}
+                {% if profile.proxy_password is defined %}
+                <proxyPassword>{{profile.proxy_password}}</proxyPassword>
+                {% endif %}
+                {% if profile.bypass_hosts is defined %}
+                <bypass>{% for bypassitem in profile.bypass_hosts.toList() %}{{bypassitem}}{% if loop.index < profile.bypass_hosts.toList()|length %},{% endif %}{% endfor %}</bypass>
+                {% endif %}
+            </profile>
             {% endfor %}
-      </transportSender>
+        </parameter>
+        {% endif %}
+    </transportSender>
+    {% endif %}
+
+    {% if transport.netty.http.sender.secured_enable == true %}
+        <transportSender name="httpswss" class="{{transport.netty.https.sender.class}}">
+            <parameter name="non-blocking" locked="false">true</parameter>
+            {% for parameter_key,parameter_value in transport.netty.https.sender.parameter.items() %}
+            <parameter name="{{parameter_key}}" locked="false">{{parameter_value}}</parameter>
+            {% endfor %}
+            <parameter name="keystore" locked="false">
+                <KeyStore>
+                    <Location>{{transport.netty.https.sender.keystore.location}}</Location>
+                    <Type>{{transport.netty.https.sender.keystore.type}}</Type>
+                    <Password>{{transport.netty.https.sender.keystore.password}}</Password>
+                    <KeyPassword>{{transport.netty.https.sender.keystore.key_password}}</KeyPassword>
+                </KeyStore>
+            </parameter>
+            <parameter name="truststore" locked="false">
+                <TrustStore>
+                    <Location>{{transport.netty.https.sender.truststore.location}}</Location>
+                    <Type>{{transport.netty.https.sender.truststore.type}}</Type>
+                    <Password>{{transport.netty.https.sender.truststore.password}}</Password>
+                </TrustStore>
+            </parameter>
+            {% if transport.netty.http.sender.certificate_revocation_verifier_enable is defined %}
+            <parameter name="CertificateRevocationVerifier" enable="{{transport.netty.http.sender.certificate_revocation_verifier_enable}}">
+                <CacheSize>{{transport.netty.http.sender.certificate_revocation_cache_size}}</CacheSize>
+                <CacheDelay>{{transport.netty.http.sender.certificate_revocation_cache_delay}}</CacheDelay>
+            </parameter>
+            {% endif %}
+        </transportSender>
+    {% endif %}
+
+{% if transport.jms.sender_enable is defined %}
+    {% if transport.jms.sender_enable and transport.jms.sender|length==0 %}
+    <transportSender name="jms" class="org.apache.axis2.transport.jms.JMSSender"/>
+    {% elif transport.jms.sender_enable %}
+    <transportSender name="jms" class="org.apache.axis2.transport.jms.JMSSender">
+        {% for sender in transport.jms.sender %}
+        <parameter name="{{sender.name}}" locked="false">
+            {% for name,value in sender.parameter.items() %}
+            <parameter name="{{name}}" locked="false">{{value}}</parameter>
+            {% endfor %}
+        </parameter>
+        {% endfor %}
+    </transportSender>
+    {% endif %}
+{% elif transport.jms.sender|length>0 %}
+    <transportSender name="jms" class="org.apache.axis2.transport.jms.JMSSender">
+        {% for sender in transport.jms.sender %}
+        <parameter name="{{sender.name}}" locked="false">
+            {% for name,value in sender.parameter.items() %}
+            <parameter name="{{name}}" locked="false">{{value}}</parameter>
+            {% endfor %}
+        </parameter>
+        {% endfor %}
+    </transportSender>
 {% endif %}
 
 {% if transport.ws.sender.enable %}
@@ -365,6 +470,10 @@
 
     <!-- Comment this out to disable Addressing -->
     <module ref="addressing"/>
+
+    {% for module in server.globally_engaged_modules %}
+    <module ref="{{module}}"/>
+    {% endfor %}
 
     <!--
     Uncomment out the following entry if SOAP (text/xml and application/soap+xml) messages

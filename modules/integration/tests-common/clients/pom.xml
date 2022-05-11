@@ -16,7 +16,7 @@
     <parent>
         <artifactId>tests-common</artifactId>
         <groupId>org.wso2.am</groupId>
-        <version>3.1.0-SNAPSHOT</version>
+        <version>4.1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -28,5 +28,8 @@
     <modules>
         <module>publisher</module>
         <module>store</module>
+        <module>admin</module>
+        <module>gateway</module>
+        <module>internal-api</module>
     </modules>
 </project>

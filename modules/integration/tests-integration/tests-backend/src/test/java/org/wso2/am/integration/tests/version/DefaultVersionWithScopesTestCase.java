@@ -162,7 +162,7 @@ public class DefaultVersionWithScopesTestCase extends APIManagerLifecycleBaseTes
 
             String requestBody = "grant_type=password&username=" + USER_SAM + "@" + storeContext.getContextTenant()
                     .getDomain() + "&password=" + user_sam_password + "&scope=" + user_scope;
-            URL tokenEndpointURL = new URL(gatewayUrlsWrk.getWebAppURLNhttps() + "token");
+            URL tokenEndpointURL = new URL(keyManagerHTTPSURL + "oauth2/token");
             JSONObject accessTokenGenerationResponse = new JSONObject(restAPIStore.generateUserAccessKey(consumerKey,
                     consumerSecret, requestBody, tokenEndpointURL).getData());
             userAccessToken = accessTokenGenerationResponse.getString("access_token");
@@ -205,9 +205,10 @@ public class DefaultVersionWithScopesTestCase extends APIManagerLifecycleBaseTes
     public void destroy() throws Exception {
         SubscriptionListDTO subsDTO = restAPIStore.getAllSubscriptionsOfApplication(applicationID);
         for (SubscriptionDTO subscriptionDTO : subsDTO.getList()) {
-            restAPIStore.removeSubscription(subscriptionDTO.getSubscriptionId());
+            restAPIStore.removeSubscription(subscriptionDTO);
         }
         restAPIStore.deleteApplication(applicationID);
+        undeployAndDeleteAPIRevisionsUsingRest(apiId, restAPIPublisher);
         restAPIPublisher.deleteAPI(apiId);
 
         if (userManagementClient != null) {

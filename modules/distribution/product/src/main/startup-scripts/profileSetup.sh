@@ -22,18 +22,28 @@ pathToAxis2BlockingClientXML='../repository/conf/axis2/axis2_blocking_client.xml
 pathToAxis2BlockingClientXMLTemplate='../repository/resources/conf/templates/repository/conf/axis2/axis2_blocking_client.xml.j2'
 pathToRegistryTemplate='../repository/resources/conf/templates/repository/conf/registry.xml.j2'
 pathToInboundEndpoints='../repository/deployment/server/synapse-configs/default/inbound-endpoints/'
+pathToInboundEndpointsTemplate='../repository/resources/conf/templates/repository/deployment/server/synapse-configs/default/inbound-endpoints/'
 pathToWebapps='../repository/deployment/server/webapps'
 pathToJaggeryapps='../repository/deployment/server/jaggeryapps'
 pathToSynapseConfigs='../repository/deployment/server/synapse-configs/default'
 pathToAxis2TMXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/axis2_TM.xml.j2'
 pathToAxis2KMXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/axis2_KM.xml.j2'
 pathToTenantAxis2KMXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/tenant-axis2_KM.xml.j2'
+pathToAxis2PublisherXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/axis2_Publisher.xml.j2'
+pathToTenantAxis2PublisherXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/tenant-axis2_Publisher.xml.j2'
+pathToAxis2DevportalXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/axis2_Devportal.xml.j2'
+pathToTenantAxis2DevportalXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/tenant-axis2_Devportal.xml.j2'
+pathToAxis2ControlPlaneXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/axis2_ControlPlane.xml.j2'
+pathToTenantAxis2ControlPlaneXmlTemplate='../repository/resources/conf/templates/repository/conf/axis2/tenant-axis2_ControlPlane.xml.j2'
 pathToRegistryTMTemplate='../repository/resources/conf/templates/repository/conf/registry_TM.xml.j2'
 pathToAxis2TXmlTemplateBackup='../repository/resources/conf/templates/repository/conf/axis2/axis2.xml.j2.backup'
 pathToTenantAxis2TXmlTemplateBackup='../repository/resources/conf/templates/repository/conf/axis2/tenant-axis2.xml.j2.backup'
 pathToRegistryTemplateBackup='../repository/resources/conf/templates/repository/conf/registry.backup'
 pathToDeploymentConfigurationBackup='../repository/conf/deployment.toml.backup'
 pathToDeploymentTemplates='../repository/resources/conf/deployment-templates'
+pathToTomcatCarbonWEBINFWebXmlTemplate='../repository/resources/conf/templates/repository/conf/tomcat/carbon/WEB-INF/web.xml.j2'
+pathToTomcatCarbonWEBINFWebXmlTemplateBackup='../repository/resources/conf/templates/repository/conf/tomcat/carbon/WEB-INF/web.xml.j2.backup'
+pathToTomcatCarbonWEBINFWebXmlTMTemplate='../repository/resources/conf/templates/repository/conf/tomcat/carbon/WEB-INF/web_TM_GW.xml.j2'
 timestamp=""
 cd `dirname "$0"`
 
@@ -48,6 +58,13 @@ removeWebSocketInboundEndpoint(){
 		timeStamp
 		echo "[${timestamp}] INFO - Removed the WebSocketInboundEndpoint.xml file from $pathToInboundEndpoints"
 	fi
+
+    if [ -e ${pathToInboundEndpointsTemplate}WebSocketInboundEndpoint.xml.j2 ]
+	then
+		rm -r ${pathToInboundEndpointsTemplate}WebSocketInboundEndpoint.xml.j2
+		timeStamp
+		echo "[${timestamp}] INFO - Removed the WebSocketInboundEndpoint.xml.j2 file from $pathToInboundEndpointsTemplate"
+	fi
 }
 
 removeSecureWebSocketInboundEndpoint(){
@@ -56,6 +73,13 @@ removeSecureWebSocketInboundEndpoint(){
 		rm -r ${pathToInboundEndpoints}SecureWebSocketInboundEndpoint.xml
 		timeStamp
 		echo "[${timestamp}] INFO - Removed the SecureWebSocketInboundEndpoint.xml file from $pathToInboundEndpoints"
+	fi
+
+	if [ -e ${pathToInboundEndpointsTemplate}SecureWebSocketInboundEndpoint.xml.j2 ]
+	then
+		rm -r ${pathToInboundEndpointsTemplate}SecureWebSocketInboundEndpoint.xml.j2
+		timeStamp
+		echo "[${timestamp}] INFO - Removed the SecureWebSocketInboundEndpoint.xml.j2 file from $pathToInboundEndpointsTemplate"
 	fi
 }
 
@@ -80,7 +104,7 @@ removeAxis2BlockingClientXMLFile(){
 	then
 		rm -r $pathToAxis2BlockingClientXML
 		timeStamp
-		echo "[${timestamp}] INFO - Removed the axis2_blocking_client.xml file from $pathToAxis2BlockingClientXML"
+		echo "[${timestamp}] INFO - Removed the file $pathToAxis2BlockingClientXML"
 	fi
 }
 
@@ -89,7 +113,7 @@ removeAxis2BlockingClientXMLTemplateFile(){
 	then
 		rm -r $pathToAxis2BlockingClientXMLTemplate
 		timeStamp
-		echo "[${timestamp}] INFO - Removed the axis2_blocking_client.xml.j2 file from $pathToAxis2BlockingClientXMLTemplate"
+		echo "[${timestamp}] INFO - Removed the file $pathToAxis2BlockingClientXMLTemplate"
 	fi
 }
 
@@ -100,7 +124,7 @@ replaceAxis2TemplateFile(){
 		mv $pathToAxis2XMLTemplate $pathToAxis2TXmlTemplateBackup
 		timeStamp
 		echo "[${timestamp}] INFO - Renamed the existing $pathToAxis2XMLTemplate file as axis2.xml.j2.backup"
-		mv $pathToNewAxis2TemplateXml $pathToAxis2XMLTemplate
+		cp $pathToNewAxis2TemplateXml $pathToAxis2XMLTemplate
 		timeStamp
 		echo "[${timestamp}] INFO - Renamed the existing $pathToNewAxis2TemplateXml file as axis2.xml.j2"
 	fi
@@ -113,7 +137,7 @@ replaceTenantAxis2TemplateFile(){
 		mv $pathToTenantAxis2XMLTemplate $pathToTenantAxis2TXmlTemplateBackup
 		timeStamp
 		echo "[${timestamp}] INFO - Renamed the existing $pathToTenantAxis2XMLTemplate file as tenant-axis2.xml.j2.backup"
-		mv $pathToNewAxis2TemplateXml $pathToTenantAxis2XMLTemplate
+		cp $pathToNewAxis2TemplateXml $pathToTenantAxis2XMLTemplate
 		timeStamp
 		echo "[${timestamp}] INFO - Renamed the existing $pathToNewAxis2TemplateXml file as tenant-axis2.xml.j2"
 	fi
@@ -125,9 +149,21 @@ replaceRegistryXMLTemplateFile(){
 	  mv $pathToRegistryTemplate $pathToRegistryTemplateBackup
 		timeStamp
 		echo "[${timestamp}] INFO - Renamed the existing $pathToRegistryTemplate file as registry.backup"
-		mv $pathToRegistryTMTemplate $pathToRegistryTemplate
+		cp $pathToRegistryTMTemplate $pathToRegistryTemplate
 		timeStamp
 		echo "[${timestamp}] INFO - Renamed the existing $pathToRegistryTMTemplate file as registry.xml.j2"
+	fi
+}
+
+replaceTomcatCarbonWEBINFWebXmlTemplateFile(){
+  if [ -e $pathToTomcatCarbonWEBINFWebXmlTemplate ] && [ -e $pathToTomcatCarbonWEBINFWebXmlTMTemplate ]
+	then
+	  mv $pathToTomcatCarbonWEBINFWebXmlTemplate $pathToTomcatCarbonWEBINFWebXmlTemplateBackup
+		timeStamp
+		echo "[${timestamp}] INFO - Renamed the existing $pathToTomcatCarbonWEBINFWebXmlTemplate file as web.xml.j2.backup"
+		cp $pathToTomcatCarbonWEBINFWebXmlTMTemplate $pathToTomcatCarbonWEBINFWebXmlTemplate
+		timeStamp
+		echo "[${timestamp}] INFO - Renamed the existing $pathToTomcatCarbonWEBINFWebXmlTMTemplate file as web.xml.j2"
 	fi
 }
 
@@ -141,11 +177,10 @@ replaceDeploymentConfiguration(){
         if [ -e "$pathToDeploymentConfiguration" ] && [ -e "$profileConfiguration" ];then
             mv "$pathToDeploymentConfiguration" "$pathToDeploymentConfigurationBackup"
             timeStamp
-            echo "[${timestamp}] INFO - Renamed the existing $pathToDeploymentConfiguration file as deployment.toml
-            .backup"
+            echo "[${timestamp}] INFO - Renamed the existing $pathToDeploymentConfiguration file as deployment.toml.backup"
             cp "$profileConfiguration" "$pathToDeploymentConfiguration"
             timeStamp
-            echo "[${timestamp}] INFO - Renamed the existing $profileConfiguration file as deployment.toml"
+            echo "[${timestamp}] INFO - Copied the existing $profileConfiguration file as $pathToDeploymentConfiguration"
         fi
     fi
 }
@@ -164,7 +199,7 @@ done
 
 #main
 case $1 in
-	-Dprofile=api-key-manager)
+	-Dprofile=api-key-manager-deprecated)
 		timeStamp
 		echo "[${timestamp}] INFO - Starting to optimize API Manager for the Key Manager profile"
 		removeAxis2BlockingClientXMLFile
@@ -174,9 +209,13 @@ case $1 in
 		removeWebSocketInboundEndpoint
 		removeSecureWebSocketInboundEndpoint
 		removeSynapseConfigs
-		replaceDeploymentConfiguration api-key-manager $passedSkipConfigOptimizationOption
+		replaceDeploymentConfiguration api-key-manager-deprecated $passedSkipConfigOptimizationOption
 		# removing webbapps which are not required for this profile
-		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not \( -name 'client-registration#v*.war' -o -name 'authenticationendpoint' -o -name 'accountrecoveryendpoint' -o -name 'oauth2.war' -o -name 'throttle#data#v*.war' -o -name 'api#identity#consent-mgt#v*.war' \) ); do
+		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not \( -name 'client-registration#v*.war' -o -name \
+		'authenticationendpoint' -o -name 'accountrecoveryendpoint' -o -name 'oauth2.war' \
+		-o -name 'api#identity#consent-mgt#v*.war' -o -name 'api#identity#recovery#v*.war' -o -name \
+		'api#identity#user#v*.war' -o -name 'api#identity#oauth2#dcr#v*.war' -o -name 'api#identity#oauth2#v*.war' \
+		-o -name 'keymanager-operations.war' \) ); do
 			rm -r $i
 			file=`basename "$i"`
 			timeStamp
@@ -197,14 +236,16 @@ case $1 in
 			echo "[${timestamp}] INFO - Removed $folder directory from ${pathToJaggeryapps}"
 		done
 		;;
-	-Dprofile=api-publisher)
+	-Dprofile=api-publisher-deprecated)
 		timeStamp
 		echo "[${timestamp}] INFO - Starting to optimize API Manager for the API Publisher profile"
-		replaceDeploymentConfiguration api-publisher $passedSkipConfigOptimizationOption
+		replaceDeploymentConfiguration api-publisher-deprecated $passedSkipConfigOptimizationOption
 		removeWebSocketInboundEndpoint
 		removeSecureWebSocketInboundEndpoint
+    replaceAxis2TemplateFile $pathToAxis2PublisherXmlTemplate
+		replaceTenantAxis2TemplateFile $pathToTenantAxis2PublisherXmlTemplate
 		# removing webbapps which are not required for this profile
-		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not \( -name 'client-registration#v*.war' -o -name 'authenticationendpoint' -o -name 'accountrecoveryendpoint' -o -name 'oauth2.war' -o -name 'api#am#publisher#v*.war' -o -name 'api#am#publisher.war' -o -name 'api#am#admin#v*.war' \) ); do
+		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not \( -name 'client-registration#v*.war' -o -name 'authenticationendpoint' -o -name 'accountrecoveryendpoint' -o -name 'oauth2.war' -o -name 'api#am#publisher#v*.war' -o -name 'api#am#publisher.war' -o -name 'api#am#admin#v*.war' -o -name 'api#am#admin.war' -o -name 'api#identity#consent-mgt#v*.war'  -o -name 'internal#data#v*.war' \) ); do
 			rm -r $i
 			file=`basename "$i"`
 			timeStamp
@@ -225,14 +266,16 @@ case $1 in
 			echo "[${timestamp}] INFO - Removed $folder directory from ${pathToJaggeryapps}"
 		done
 		;;
-	-Dprofile=api-devportal)
+	-Dprofile=api-devportal-deprecated)
 		timeStamp
 		echo "[${timestamp}] INFO - Starting to optimize API Manager for the Developer Portal profile"
-		replaceDeploymentConfiguration api-devportal $passedSkipConfigOptimizationOption
+		replaceDeploymentConfiguration api-devportal-deprecated $passedSkipConfigOptimizationOption
 		removeWebSocketInboundEndpoint
 		removeSecureWebSocketInboundEndpoint
+    replaceAxis2TemplateFile $pathToAxis2DevportalXmlTemplate
+		replaceTenantAxis2TemplateFile $pathToTenantAxis2DevportalXmlTemplate
 		# removing webbapps which are not required for this profile
-		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not \( -name 'client-registration#v*.war' -o -name 'authenticationendpoint' -o -name 'accountrecoveryendpoint' -o -name 'oauth2.war' -o -name 'api#am#store#v*.war' -o -name 'api#am#store.war' -o -name 'api#am#admin#v*.war' \) ); do
+		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not \( -name 'client-registration#v*.war' -o -name 'authenticationendpoint' -o -name 'accountrecoveryendpoint' -o -name 'oauth2.war' -o -name 'api#am#devportal#v*.war' -o -name 'api#am#devportal.war' -o -name 'api#am#admin#v*.war' -o -name 'api#am#admin.war' -o -name 'api#identity#consent-mgt#v*.war' -o -name 'api#identity#recovery#v*.war' -o -name 'api#identity#user#v*.war' -o -name 'internal#data#v*.war' \) ); do
 			rm -r $i
 			file=`basename "$i"`
 			timeStamp
@@ -253,17 +296,42 @@ case $1 in
 			echo "[${timestamp}] INFO - Removed $folder directory from ${pathToJaggeryapps}"
 		done
         ;;
+	-Dprofile=control-plane)
+		timeStamp
+		echo "[${timestamp}] INFO - Starting to optimize API Manager for the Control Plane profile"
+		replaceDeploymentConfiguration control-plane $passedSkipConfigOptimizationOption
+		removeWebSocketInboundEndpoint
+		removeSecureWebSocketInboundEndpoint
+		removeSynapseConfigs
+		replaceAxis2TemplateFile $pathToAxis2ControlPlaneXmlTemplate
+		replaceTenantAxis2TemplateFile $pathToTenantAxis2ControlPlaneXmlTemplate
+		 # removing webbapps which are not required for this profile
+		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 \( -name 'api#am#gateway#v2.war' \)); do
+			rm -r $i
+			file=`basename "$i"`
+			timeStamp
+			echo "[${timestamp}] INFO - Removed the $file file from ${pathToWebapps}"
+			folder=`basename $file .war`
+			if [ -d ${pathToWebapps}/$folder ]
+			then
+				rm -r ${pathToWebapps}/$folder
+				timeStamp
+				echo "[${timestamp}] INFO - Removed $folder directory from ${pathToWebapps}"
+			fi
+		done
+        ;;
 	-Dprofile=traffic-manager)
 		timeStamp
 		echo "[${timestamp}] INFO - Starting to optimize API Manager for the Traffic Manager profile"
 		replaceAxis2TemplateFile $pathToAxis2TMXmlTemplate
 		replaceRegistryXMLTemplateFile
+		replaceTomcatCarbonWEBINFWebXmlTemplateFile
 		replaceDeploymentConfiguration traffic-manager $passedSkipConfigOptimizationOption
 		removeWebSocketInboundEndpoint
 		removeSecureWebSocketInboundEndpoint
 		removeSynapseConfigs
 		# removing webbapps which are not required for this profile
-		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1); do
+		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not -name 'internal#data#v*.war'); do
 			rm -r $i
 			file=`basename "$i"`
 			timeStamp
@@ -288,8 +356,9 @@ case $1 in
 		timeStamp
 		echo "[${timestamp}] INFO - Starting to optimize API Manager for the Gateway worker profile"
      	replaceDeploymentConfiguration gateway-worker $2
+		  replaceTomcatCarbonWEBINFWebXmlTemplateFile
 		# removing webbapps which are not required for this profile
-		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not -name 'am#sample#pizzashack#v*.war'); do
+		for i in $(find $pathToWebapps -maxdepth 1 -mindepth 1 -not \( -name 'am#sample#pizzashack#v*.war' -o -name 'api#am#gateway#v2.war' \)); do
 			rm -r $i
 			file=`basename "$i"`
 			timeStamp

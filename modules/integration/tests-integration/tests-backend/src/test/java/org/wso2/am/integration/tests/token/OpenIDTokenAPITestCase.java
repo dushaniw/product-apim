@@ -32,6 +32,7 @@ import org.wso2.am.integration.test.utils.base.APIMIntegrationBaseTest;
 import org.wso2.am.integration.test.utils.base.APIMIntegrationConstants;
 import org.wso2.am.integration.test.utils.clients.APIStoreRestClient;
 import org.wso2.am.integration.test.utils.http.HTTPSClientUtils;
+import org.wso2.am.integration.test.utils.token.TokenUtils;
 import org.wso2.carbon.automation.engine.annotations.ExecutionEnvironment;
 import org.wso2.carbon.automation.engine.annotations.SetEnvironment;
 import org.wso2.carbon.automation.engine.context.TestUserMode;
@@ -80,7 +81,7 @@ public class OpenIDTokenAPITestCase extends APIMIntegrationBaseTest {
     public void testGenerateAccessTokenWithOpenIdScope() throws Exception {
         String requestBody = "grant_type=password&username=" + user.getUserName() + "&password="
                 + user.getPassword() + "&scope=openid";
-        URL tokenEndpointURL = new URL(gatewayUrlsWrk.getWebAppURLNhttps() + "token");
+        URL tokenEndpointURL = new URL(keyManagerHTTPSURL + "oauth2/token");
         JSONObject accessTokenGenerationResponse = new JSONObject(restAPIStore.generateUserAccessKey(consumerKey,
             consumerSecret, requestBody, tokenEndpointURL).getData());
 
@@ -94,10 +95,11 @@ public class OpenIDTokenAPITestCase extends APIMIntegrationBaseTest {
             dependsOnMethods = "testGenerateAccessTokenWithOpenIdScope")
     public void testCallUserInfoApiWithOpenIdAccessToken() throws Exception {
         Map<String, String> requestHeaders = new HashMap<String, String>();
-        requestHeaders.put("Authorization", "Bearer " + userAccessToken);
+        String tokenJti = TokenUtils.getJtiOfJwtToken(userAccessToken);
+        requestHeaders.put("Authorization", "Bearer " + tokenJti);
 
-        HttpResponse userInfoResponse = HTTPSClientUtils.doGet(gatewayUrlsWrk.getWebAppURLNhttp()
-                + "userinfo?schema=openid", requestHeaders);
+        HttpResponse userInfoResponse = HTTPSClientUtils.doGet(keyManagerHTTPSURL
+                + "oauth2/userinfo?schema=openid", requestHeaders);
         Assert.assertEquals(userInfoResponse.getResponseCode(), 200, "Response code mismatched");
     }
 

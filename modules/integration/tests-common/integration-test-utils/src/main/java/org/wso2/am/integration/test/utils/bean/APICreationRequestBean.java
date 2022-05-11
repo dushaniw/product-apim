@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.wso2.am.integration.test.Constants;
 import org.wso2.am.integration.test.utils.APIManagerIntegrationTestException;
 import org.wso2.am.integration.test.utils.base.APIMIntegrationConstants;
 import org.wso2.am.integration.test.utils.generic.Utils;
@@ -103,10 +104,10 @@ public class APICreationRequestBean extends AbstractRequest {
     private String techOwner = "";
     private String techOwnerMail = "";
     private JSONObject corsConfiguration;
-    private String environment = "Production and Sandbox";
-    private String destinationStats = null;
+    private String environment = Constants.GATEWAY_ENVIRONMENT;
     private String productionTps = null;
     private URL endpointUrl = null;
+    private Boolean setEndpointSecurityDirectlyToEndpoint = false;
 
     public String getEnvironment() {
         return environment;
@@ -478,14 +479,6 @@ public class APICreationRequestBean extends AbstractRequest {
         super.setAction(action);
     }
 
-    public String getDestinationStats() {
-        return destinationStats;
-    }
-
-    public void setDestinationStats(String destinationStats) {
-        this.destinationStats = destinationStats;
-    }
-
     @Override
     public void init() {
 
@@ -558,10 +551,6 @@ public class APICreationRequestBean extends AbstractRequest {
         addParameter("environments", getEnvironment());
         addParameter("corsConfiguration", getCorsConfiguration().toString());
         addParameter("subPolicyCollection",getSubPolicyCollection());
-
-        if (destinationStats != null) {
-            addParameter("destinationStats", getDestinationStats());
-        }
         if (productionTps != null) {
             addParameter("productionTps", getProductionTps());
         }
@@ -813,5 +802,13 @@ public class APICreationRequestBean extends AbstractRequest {
 
     public void setEndpointUrl(URL endpointUrl) {
         this.endpointUrl = endpointUrl;
+    }
+
+    public Boolean getSetEndpointSecurityDirectlyToEndpoint() {
+        return setEndpointSecurityDirectlyToEndpoint;
+    }
+
+    public void setSetEndpointSecurityDirectlyToEndpoint(Boolean setEndpointSecurityDirectlyToEndpoint) {
+        this.setEndpointSecurityDirectlyToEndpoint = setEndpointSecurityDirectlyToEndpoint;
     }
 }

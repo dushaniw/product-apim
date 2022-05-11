@@ -77,7 +77,8 @@ public class UsersAndDocsInAPIOverviewTestCase extends APIManagerLifecycleBaseTe
                 new URL(apiEndPointUrl));
         apiCreationRequestBean.setTags(API_TAGS);
         apiCreationRequestBean.setDescription(API_DESCRIPTION);
-        apiStoreClientUser1 = getRestAPIStoreForUser(user.getUserName(), user.getPassword(), user.getUserDomain());
+        apiStoreClientUser1 = getRestAPIStoreForUser(user.getUserName(), user.getPassword(), user.getUserDomain()
+        );
         apiStoreClientUser2 =
                 getRestAPIStoreForUser(publisherContext.getContextTenant().getTenantUser(USER_KEY_USER2).getUserName(),
                         publisherContext.getContextTenant().getTenantUser(USER_KEY_USER2).getPassword(),
@@ -155,7 +156,7 @@ public class UsersAndDocsInAPIOverviewTestCase extends APIManagerLifecycleBaseTe
         if (apiStoreClientUser2 != null) {
             apiStoreClientUser2.removeApplicationById(app2ID);
         }
-        restAPIPublisher.deleteAPIByID(apiID);
+        restAPIPublisher.deleteAPI(apiID);
     }
 
     @DataProvider
